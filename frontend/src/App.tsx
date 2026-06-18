@@ -52,12 +52,8 @@ function App() {
             <>
               <Hero />
               <EventDiscovery />
-              <AnimatedBackground>
-                <Categories />
-              </AnimatedBackground>
-              <AnimatedBackground>
-                <FeaturedSpeakers />
-              </AnimatedBackground>
+              <Categories />
+              <FeaturedSpeakers />
               <Testimonials />
               <Sponsors />
             </>

@@ -80,7 +80,7 @@ const Register = () => {
               <div style={{ position: 'relative' }}>
                 <FiLock size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#a0a0b8' }} />
                 <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min. 6 characters" className="input" style={{ paddingLeft: 40 }} required minLength={6} />
+                  placeholder="Min. 6 characters" className="input" style={{ paddingLeft: 40, paddingRight: 40 }} required minLength={6} />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
                   style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#a0a0b8', cursor: 'pointer' }}>
                   {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}

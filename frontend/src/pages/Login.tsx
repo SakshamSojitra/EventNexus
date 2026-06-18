@@ -76,7 +76,7 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 className="input"
-                style={{ paddingLeft: 40 }}
+                style={{ paddingLeft: 40, paddingRight: 40 }}
                 required
               />
               <button
