@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HiMenu, HiX } from 'react-icons/hi';
-import { FiUser, FiLogOut, FiPlus } from 'react-icons/fi';
+import { FiUser, FiLogOut, FiPlus, FiTag } from 'react-icons/fi';
+import API from '../utils/api';
 import { useStore } from '../store/useStore';
 
 const Navbar = () => {
@@ -10,7 +11,14 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [ticketCount, setTicketCount] = useState(0);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      API.get('/my-ticket').then(({ data }) => setTicketCount(data.length)).catch(() => {});
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -98,16 +106,48 @@ const Navbar = () => {
           </Link>
           <Link
             to="/events"
-            style={{
-              color: '#a0a0b8',
-              textDecoration: 'none',
-              fontSize: 14,
-              fontWeight: 500,
-              transition: 'color 0.3s',
-            }}
+            style={{ color: '#a0a0b8', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.3s' }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#a0a0b8')}
           >
             Events
           </Link>
+
+          {isAuthenticated && (
+            <Link
+              to="/my-tickets"
+              style={{ textDecoration: 'none', position: 'relative', display: 'flex', alignItems: 'center', gap: 6 }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+            >
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.96 }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  padding: '8px 16px',
+                  background: 'linear-gradient(135deg, rgba(79,70,229,0.15), rgba(124,58,237,0.1))',
+                  border: '1px solid rgba(79,70,229,0.35)',
+                  borderRadius: 10,
+                  fontSize: 13, fontWeight: 600, color: '#818cf8',
+                  boxShadow: '0 0 16px rgba(79,70,229,0.15)',
+                }}
+              >
+                <FiTag size={13} />
+                My Tickets
+                {ticketCount > 0 && (
+                  <span style={{
+                    minWidth: 18, height: 18, borderRadius: 100,
+                    background: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
+                    color: '#fff', fontSize: 10, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '0 5px',
+                  }}>
+                    {ticketCount}
+                  </span>
+                )}
+              </motion.div>
+            </Link>
+          )}
 
           {isAuthenticated ? (
             <>

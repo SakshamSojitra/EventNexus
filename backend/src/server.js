@@ -11,6 +11,7 @@ const eventRoutes = require('./routes/events');
 const ticketRoutes = require('./routes/tickets');
 const userRoutes = require('./routes/users');
 const adminRoutes = require('./routes/admin');
+const bookingRoutes = require('./routes/bookings');
 
 dotenv.config({ path: './.env' });
 
@@ -46,6 +47,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api', bookingRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import EventDiscovery from './components/EventDiscovery';
@@ -37,6 +38,21 @@ function App() {
 
   return (
     <>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: 'rgba(15,15,35,0.95)',
+            color: '#fff',
+            border: '1px solid rgba(79,70,229,0.3)',
+            borderRadius: 12,
+            backdropFilter: 'blur(12px)',
+            fontSize: 14,
+          },
+          success: { iconTheme: { primary: '#10B981', secondary: '#fff' } },
+          error: { iconTheme: { primary: '#EF4444', secondary: '#fff' } },
+        }}
+      />
       <div
         className="cursor-glow"
         style={{

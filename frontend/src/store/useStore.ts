@@ -25,7 +25,8 @@ interface StoreState {
   notifications: Notification[];
   onlineUsers: number;
   isLoading: boolean;
-  
+  ticketCount: number;
+
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
   login: (email: string, password: string) => Promise<void>;
@@ -35,6 +36,7 @@ interface StoreState {
   setOnlineUsers: (count: number) => void;
   addNotification: (notification: Notification) => void;
   setLoading: (loading: boolean) => void;
+  setTicketCount: (count: number) => void;
 }
 
 export const useStore = create<StoreState>((set, get) => ({
@@ -44,6 +46,7 @@ export const useStore = create<StoreState>((set, get) => ({
   notifications: [],
   onlineUsers: 0,
   isLoading: false,
+  ticketCount: 0,
 
   setUser: (user) => set({ user, isAuthenticated: !!user }),
   setToken: (token) => {
@@ -58,6 +61,7 @@ export const useStore = create<StoreState>((set, get) => ({
   addNotification: (notification) =>
     set((state) => ({ notifications: [notification, ...state.notifications] })),
   setLoading: (loading) => set({ isLoading: loading }),
+  setTicketCount: (count) => set({ ticketCount: count }),
 
   login: async (email, password) => {
     try {

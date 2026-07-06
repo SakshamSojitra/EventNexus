@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { FiCalendar, FiSend, FiBookmark, FiUsers, FiTrendingUp, FiArrowRight, FiRefreshCw } from 'react-icons/fi';
 import { useStore } from '../store/useStore';
+import API from '../utils/api';
 
 interface UserStats {
   totalEvents: number;
@@ -18,6 +19,12 @@ const Dashboard = () => {
     totalEvents: 0, totalTickets: 0, savedEvents: 0,
     networkingCount: 0, rewardPoints: 0,
   });
+
+  useEffect(() => {
+    API.get('/my-ticket').then(({ data }) => {
+      setStats((s) => ({ ...s, totalTickets: data.length, totalEvents: data.length }));
+    }).catch(() => {});
+  }, []);
 
   const widgets = [
     { icon: FiCalendar, label: 'Upcoming Events', value: stats.totalEvents, color: '#4F46E5', href: '/my-tickets' },
