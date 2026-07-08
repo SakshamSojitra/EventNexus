@@ -7,8 +7,21 @@ import { MOCK_EVENTS, CATEGORIES, MockEvent } from '../data/mockEvents';
 
 const COLORS = ['#4F46E5', '#7C3AED', '#06B6D4', '#EC4899', '#10B981', '#F59E0B'];
 
+const CATEGORY_IMAGES: Record<string, string> = {
+  ai: 'https://media.istockphoto.com/id/2222990006/photo/artificial-intelligence-machine-learning-large-language-model-ai-technology.webp?a=1&b=1&s=612x612&w=0&k=20&c=T28GEzXtmmie0RbPJAn6MDncUJpQzqaqoSimSjLBBv0=',
+  technology: 'https://plus.unsplash.com/premium_photo-1733353272493-04c4abfd3c43?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OXx8Y3JlYXRpdmUlMjB0ZWNobm9sb2d5fGVufDB8fDB8fHww',
+  startups: 'https://images.unsplash.com/photo-1541746972996-4e0b0f43e02a?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8c3RhcnR1cCUyMG1lZXRpbmd8ZW58MHx8MHx8fDA%3D',
+  gaming: 'https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8Z2FtaW5nfGVufDB8fDB8fHww',
+  music: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8bXVzaWMlMjBmZXN0aXZhbHxlbnwwfHwwfHx8MA%3D%3D',
+  sports: 'https://media.istockphoto.com/id/2020169093/photo/beautiful-sports-stadium-with-a-green-grass-field-shines-with-blue-spotlights-at-night-with.webp?a=1&b=1&s=612x612&w=0&k=20&c=46Ap44sp9RTwkuYF4rEkbbqnE6lRVA80woRPCevVgqI=',
+  business: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fGJ1c2luZXNzJTIwbWVldGluZ3xlbnwwfHwwfHx8MA%3D%3D',
+  design: 'https://images.unsplash.com/photo-1542626991-cbc4e32524cc?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8ZGVzaWduJTIwd29ya3Nob3B8ZW58MHx8MHx8fDA%3D',
+};
+
 const EventCard = ({ event, index }: { event: MockEvent; index: number }) => {
   const color = COLORS[index % COLORS.length];
+  const [hovered, setHovered] = useState(false);
+  const imgSrc = event.banner || CATEGORY_IMAGES[event.category] || CATEGORY_IMAGES.ai;
 
   return (
     <motion.div
@@ -16,6 +29,9 @@ const EventCard = ({ event, index }: { event: MockEvent; index: number }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.05 }}
       whileHover={{ y: -8, scale: 1.02 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="group"
       style={{
         background: 'rgba(255,255,255,0.04)',
         borderRadius: 16,
@@ -27,31 +43,34 @@ const EventCard = ({ event, index }: { event: MockEvent; index: number }) => {
       <Link to={`/event/${event._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
         <div
           style={{
-            height: 180,
-            background: `linear-gradient(135deg, ${color}33, ${color}11)`,
+            height: 220,
             position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            overflow: 'hidden',
           }}
         >
-          <div
+          <img
+            src={imgSrc}
+            alt={event.category}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-[220px] object-cover transition-all duration-500 group-hover:scale-110"
             style={{
-              position: 'absolute',
-              inset: 0,
-              background: `radial-gradient(circle at 30% 50%, ${color}22, transparent)`,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+              transform: hovered ? 'scale(1.1)' : 'scale(1)',
+              filter: hovered ? 'brightness(1.08)' : 'brightness(1)',
+              transition: 'transform 0.5s ease, filter 0.5s ease',
             }}
           />
           <div
             style={{
-              fontSize: 36,
-              fontWeight: 700,
-              fontFamily: "'Space Grotesk', sans-serif",
-              color: `${color}44`,
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(180deg, rgba(5,8,20,0.15) 0%, rgba(5,8,20,0.35) 40%, rgba(5,8,20,0.65) 75%, rgba(5,8,20,0.90) 100%)',
             }}
-          >
-            {event.category.toUpperCase()}
-          </div>
+          />
           <div
             style={{
               position: 'absolute',
@@ -67,6 +86,26 @@ const EventCard = ({ event, index }: { event: MockEvent; index: number }) => {
             }}
           >
             {event.category}
+          </div>
+          <div
+            style={{
+              position: 'absolute',
+              top: 12,
+              right: 12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '4px 10px',
+              background: 'rgba(239,68,68,0.2)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: 100,
+              fontSize: 11,
+              color: '#ef4444',
+              border: '1px solid rgba(239,68,68,0.25)',
+            }}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444' }} />
+            Live
           </div>
         </div>
 

@@ -378,6 +378,7 @@ const Hero = () => {
                 borderRadius: 12,
                 gap: 12,
               }}
+              onClick={() => window.open('https://www.youtube.com/watch?v=d77TQupCENc', '_blank', 'noopener,noreferrer')}
             >
               <FiPlay /> Watch Demo
             </button>
