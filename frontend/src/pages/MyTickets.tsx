@@ -1,16 +1,16 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { FiCalendar, FiMapPin, FiDownload, FiShare2, FiCreditCard, FiRefreshCw, FiArrowLeft, FiHome, FiClock, FiAlertTriangle } from 'react-icons/fi';
+import { FiCalendar, FiMapPin, FiDownload, FiShare2, FiCreditCard, FiRefreshCw, FiArrowLeft, FiHome, FiClock } from 'react-icons/fi';
 import { QRCodeSVG } from 'qrcode.react';
 import API from '../utils/api';
 import { Booking } from '../hooks/useBooking';
 import toast from 'react-hot-toast';
 
 const TYPE_CONFIG = {
-  free: { label: 'FREE', color: '#10B981', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)', gradient: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.03))' },
-  premium: { label: 'PREMIUM', color: '#4F46E5', bg: 'rgba(79,70,229,0.12)', border: 'rgba(79,70,229,0.3)', gradient: 'linear-gradient(135deg, rgba(79,70,229,0.15), rgba(124,58,237,0.05))' },
-  vip: { label: 'VIP', color: '#F59E0B', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)', gradient: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.03))' },
+  free:    { label: 'FREE',    color: '#10B981', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.3)',  gradient: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.03))' },
+  premium: { label: 'PREMIUM', color: '#4F46E5', bg: 'rgba(79,70,229,0.12)',   border: 'rgba(79,70,229,0.3)',   gradient: 'linear-gradient(135deg, rgba(79,70,229,0.15), rgba(124,58,237,0.05))' },
+  vip:     { label: 'VIP',     color: '#F59E0B', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.3)',  gradient: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.03))' },
 };
 
 function formatDate(dateStr?: string) {
@@ -18,90 +18,47 @@ function formatDate(dateStr?: string) {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-// Countdown timer hook
-function useCountdown(expiresAt?: string) {
-  const calc = () => {
-    if (!expiresAt) return null;
-    const diff = new Date(expiresAt).getTime() - Date.now();
-    if (diff <= 0) return null;
-    const h = Math.floor(diff / 3600000);
-    const m = Math.floor((diff % 3600000) / 60000);
-    const s = Math.floor((diff % 60000) / 1000);
-    return { h, m, s, diff };
-  };
-  const [time, setTime] = useState(calc);
-  useEffect(() => {
-    if (!expiresAt) return;
-    const id = setInterval(() => setTime(calc()), 1000);
-    return () => clearInterval(id);
-  }, [expiresAt]);
-  return time;
+// "27 Mar 2027 • 05:00 PM"
+function formatValidUntil(dateStr?: string, timeStr?: string) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+  return timeStr ? `${d} • ${timeStr}` : d;
 }
 
-function CountdownBadge({ expiresAt, onExpired }: { expiresAt?: string; onExpired: () => void }) {
-  const time = useCountdown(expiresAt);
-
-  useEffect(() => {
-    if (expiresAt && time === null) onExpired();
-  }, [time]);
-
-  if (!expiresAt) return null;
-
-  const isExpired = time === null;
-  const isUrgent = time !== null && time.diff < 3600000; // under 1 hour
-  const isWarning = time !== null && time.diff < 86400000; // under 24 hours
-
-  if (isExpired) {
-    return (
-      <motion.span
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 5,
-          padding: '3px 10px',
-          background: 'rgba(239,68,68,0.15)',
-          border: '1px solid rgba(239,68,68,0.4)',
-          borderRadius: 100, fontSize: 10, fontWeight: 700, color: '#EF4444',
-        }}
-      >
-        <FiAlertTriangle size={9} /> EXPIRED
-      </motion.span>
-    );
-  }
-
-  const color = isUrgent ? '#EF4444' : isWarning ? '#F59E0B' : '#10B981';
-  const bg = isUrgent ? 'rgba(239,68,68,0.1)' : isWarning ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)';
-  const border = isUrgent ? 'rgba(239,68,68,0.3)' : isWarning ? 'rgba(245,158,11,0.3)' : 'rgba(16,185,129,0.25)';
-  const label = `${time.h}h ${time.m}m ${time.s}s`;
+// Animated status badge — Upcoming (blue) / Live (green, pulsing) / Expired (red)
+function StatusBadge({ status }: { status: 'upcoming' | 'live' | 'expired' }) {
+  const cfg = {
+    upcoming: { label: 'Upcoming', color: '#60A5FA', bg: 'rgba(96,165,250,0.12)',  border: 'rgba(96,165,250,0.3)'  },
+    live:     { label: '● Live',   color: '#10B981', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.3)'  },
+    expired:  { label: 'Expired',  color: '#EF4444', bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.3)'   },
+  }[status];
 
   return (
     <motion.span
-      animate={isUrgent ? { opacity: [1, 0.5, 1] } : {}}
-      transition={isUrgent ? { duration: 1, repeat: Infinity } : {}}
+      animate={status === 'live' ? { opacity: [1, 0.5, 1] } : {}}
+      transition={status === 'live' ? { duration: 1.4, repeat: Infinity } : {}}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 5,
         padding: '3px 10px',
-        background: bg, border: `1px solid ${border}`,
-        borderRadius: 100, fontSize: 10, fontWeight: 700, color,
+        background: cfg.bg, border: `1px solid ${cfg.border}`,
+        borderRadius: 100, fontSize: 10, fontWeight: 700, color: cfg.color,
+        letterSpacing: 0.6,
       }}
     >
-      <FiClock size={9} /> {label}
+      {cfg.label}
     </motion.span>
   );
 }
 
-function TicketCard({ booking, index, onExpired }: { booking: Booking; index: number; onExpired: (id: string) => void }) {
+function TicketCard({ booking, index }: { booking: Booking; index: number }) {
   const cfg = TYPE_CONFIG[booking.ticketType] || TYPE_CONFIG.free;
-  const [removing, setRemoving] = useState(false);
+  const status = (booking.ticketStatus ?? 'upcoming') as 'upcoming' | 'live' | 'expired';
+  const isExpired = status === 'expired';
 
-  const handleExpired = () => {
-    setRemoving(true);
-    toast('🕐 Ticket expired — event has ended', {
-      style: { background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fff' },
-      duration: 4000,
-    });
-    setTimeout(() => onExpired(booking._id), 1500);
-  };
+  const endDate = booking.event?.dateTime?.endDate || booking.event?.dateTime?.startDate;
+  const endTime = booking.event?.dateTime?.endTime;
+  const validUntil = formatValidUntil(endDate, endTime);
+
   const qrValue = JSON.stringify({
     bookingId: booking.bookingId,
     ticketNumber: booking.ticketNumber,
@@ -110,26 +67,22 @@ function TicketCard({ booking, index, onExpired }: { booking: Booking; index: nu
   });
 
   const handleDownload = async () => {
+    if (isExpired) return;
     try {
-      // Dynamic import to keep bundle lean
       const { default: jsPDF } = await import('jspdf');
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [148, 100] });
 
-      // Background
       doc.setFillColor(11, 11, 22);
       doc.rect(0, 0, 148, 100, 'F');
 
-      // Purple gradient strip
       doc.setFillColor(79, 70, 229);
       doc.rect(0, 0, 6, 100, 'F');
 
-      // Title
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
       doc.text(booking.event?.title || 'AI Summit 2027', 14, 18);
 
-      // Ticket type badge
       const [r, g, b] = booking.ticketType === 'vip' ? [245, 158, 11] : booking.ticketType === 'premium' ? [79, 70, 229] : [16, 185, 129];
       doc.setFillColor(r, g, b);
       doc.roundedRect(14, 22, 28, 7, 2, 2, 'F');
@@ -138,11 +91,10 @@ function TicketCard({ booking, index, onExpired }: { booking: Booking; index: nu
       doc.setFont('helvetica', 'bold');
       doc.text(cfg.label, 28, 27.5, { align: 'center' });
 
-      // Details
       doc.setTextColor(160, 160, 184);
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
-      const details = [
+      const details: [string, string][] = [
         ['Ticket #', booking.ticketNumber],
         ['Booking ID', booking.bookingId.substring(0, 18) + '...'],
         ['Name', booking.user?.name || ''],
@@ -159,18 +111,15 @@ function TicketCard({ booking, index, onExpired }: { booking: Booking; index: nu
         doc.text(value, 50, 38 + i * 7);
       });
 
-      // Divider
       doc.setDrawColor(79, 70, 229);
       doc.setLineWidth(0.3);
       doc.line(110, 8, 110, 92);
 
-      // QR placeholder text (actual QR needs canvas)
       doc.setTextColor(160, 160, 184);
       doc.setFontSize(7);
       doc.text('SCAN QR CODE', 129, 50, { align: 'center' });
       doc.text(booking.ticketNumber, 129, 56, { align: 'center' });
 
-      // Footer
       doc.setFillColor(20, 20, 40);
       doc.rect(0, 88, 148, 12, 'F');
       doc.setTextColor(100, 100, 130);
@@ -185,6 +134,7 @@ function TicketCard({ booking, index, onExpired }: { booking: Booking; index: nu
   };
 
   const handleShare = async () => {
+    if (isExpired) return;
     const text = `🎫 I'm attending ${booking.event?.title || 'AI Summit 2027'}!\nTicket: ${booking.ticketNumber}\nType: ${cfg.label}`;
     if (navigator.share) {
       await navigator.share({ title: 'My Event Ticket', text });
@@ -197,16 +147,16 @@ function TicketCard({ booking, index, onExpired }: { booking: Booking; index: nu
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
-      animate={removing ? { opacity: 0, scale: 0.92, y: -20 } : { opacity: 1, y: 0 }}
-      transition={removing ? { duration: 0.5 } : { delay: index * 0.08, type: 'spring', stiffness: 200, damping: 22 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.08, type: 'spring', stiffness: 200, damping: 22 }}
       style={{
-        background: cfg.gradient,
+        background: isExpired ? 'rgba(239,68,68,0.04)' : cfg.gradient,
         borderRadius: 24,
-        border: `1px solid ${removing ? 'rgba(239,68,68,0.4)' : cfg.border}`,
+        border: `1px solid ${isExpired ? 'rgba(239,68,68,0.2)' : cfg.border}`,
         overflow: 'hidden',
         position: 'relative',
-        boxShadow: `0 4px 40px ${cfg.color}18`,
-        pointerEvents: removing ? 'none' : 'auto',
+        boxShadow: isExpired ? '0 4px 40px rgba(239,68,68,0.08)' : `0 4px 40px ${cfg.color}18`,
+        opacity: isExpired ? 0.78 : 1,
       }}
     >
       {/* Holographic shimmer */}
@@ -219,45 +169,60 @@ function TicketCard({ booking, index, onExpired }: { booking: Booking; index: nu
       {/* Left accent bar */}
       <div style={{
         position: 'absolute', left: 0, top: 0, bottom: 0, width: 4,
-        background: `linear-gradient(180deg, ${cfg.color}, ${cfg.color}66)`,
+        background: isExpired
+          ? 'linear-gradient(180deg, #EF4444, #EF444466)'
+          : `linear-gradient(180deg, ${cfg.color}, ${cfg.color}66)`,
       }} />
 
       <div style={{ padding: '28px 28px 20px 36px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
+
           {/* Left: ticket info */}
           <div style={{ flex: 1, minWidth: 260 }}>
-            {/* Header row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+
+            {/* Header row: badges */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 11, color: '#818cf8', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 600 }}>
                 Digital Ticket
               </span>
               <span style={{
                 padding: '3px 10px',
-                background: cfg.bg,
-                border: `1px solid ${cfg.border}`,
-                borderRadius: 100,
-                fontSize: 10, fontWeight: 700,
+                background: cfg.bg, border: `1px solid ${cfg.border}`,
+                borderRadius: 100, fontSize: 10, fontWeight: 700,
                 color: cfg.color, letterSpacing: 1,
               }}>
                 {cfg.label}
               </span>
-              <span style={{
-                padding: '3px 10px',
-                background: 'rgba(16,185,129,0.1)',
-                border: '1px solid rgba(16,185,129,0.25)',
-                borderRadius: 100,
-                fontSize: 10, fontWeight: 600,
-                color: '#10B981',
-              }}>
-                ✓ Confirmed
+              {!isExpired && (
+                <span style={{
+                  padding: '3px 10px',
+                  background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)',
+                  borderRadius: 100, fontSize: 10, fontWeight: 600, color: '#10B981',
+                }}>
+                  ✓ Confirmed
+                </span>
+              )}
+              <StatusBadge status={status} />
+            </div>
+
+            {/* Valid Until / Expired On */}
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '5px 12px',
+              background: isExpired ? 'rgba(239,68,68,0.08)' : 'rgba(96,165,250,0.08)',
+              border: `1px solid ${isExpired ? 'rgba(239,68,68,0.2)' : 'rgba(96,165,250,0.2)'}`,
+              borderRadius: 8, marginBottom: 14,
+            }}>
+              <FiClock size={11} color={isExpired ? '#EF4444' : '#60A5FA'} />
+              <span style={{ fontSize: 11, color: isExpired ? '#EF4444' : '#60A5FA', fontWeight: 600 }}>
+                {isExpired ? `Expired on ${validUntil}` : `Valid Until ${validUntil}`}
               </span>
-              <CountdownBadge expiresAt={booking.expiresAt} onExpired={handleExpired} />
             </div>
 
             <h3 style={{
               fontSize: 22, fontWeight: 800,
               fontFamily: "'Space Grotesk', sans-serif",
-              marginBottom: 4, color: '#fff',
+              marginBottom: 4, color: isExpired ? '#a0a0b8' : '#fff',
             }}>
               {booking.event?.title || 'AI Summit 2027'}
             </h3>
@@ -265,7 +230,7 @@ function TicketCard({ booking, index, onExpired }: { booking: Booking; index: nu
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 24px', marginBottom: 18 }}>
               {[
                 { icon: FiCalendar, text: formatDate(booking.event?.dateTime?.startDate) },
-                { icon: FiMapPin, text: `${booking.event?.venue?.city || 'San Francisco'}, ${booking.event?.venue?.country || 'CA'}` },
+                { icon: FiMapPin,   text: `${booking.event?.venue?.city || 'San Francisco'}, ${booking.event?.venue?.country || 'CA'}` },
               ].map(({ icon: Icon, text }, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#a0a0b8' }}>
                   <Icon size={13} color="#818cf8" /> {text}
@@ -276,20 +241,17 @@ function TicketCard({ booking, index, onExpired }: { booking: Booking; index: nu
             {/* Ticket details grid */}
             <div style={{
               display: 'grid', gridTemplateColumns: '1fr 1fr',
-              gap: '10px 24px',
-              padding: '16px 18px',
-              background: 'rgba(255,255,255,0.03)',
-              borderRadius: 14,
-              border: '1px solid rgba(255,255,255,0.05)',
-              marginBottom: 16,
+              gap: '10px 24px', padding: '16px 18px',
+              background: 'rgba(255,255,255,0.03)', borderRadius: 14,
+              border: '1px solid rgba(255,255,255,0.05)', marginBottom: 16,
             }}>
               {[
-                { label: 'Ticket #', value: booking.ticketNumber },
+                { label: 'Ticket #',   value: booking.ticketNumber },
                 { label: 'Booking ID', value: booking.bookingId?.substring(0, 8).toUpperCase() + '...' },
-                { label: 'Name', value: booking.user?.name || '—' },
-                { label: 'Email', value: booking.user?.email || '—' },
-                { label: 'Price', value: booking.price === 0 ? 'FREE' : `$${booking.price}` },
-                { label: 'Payment', value: booking.paymentStatus === 'free' ? 'Free' : 'Paid ✓' },
+                { label: 'Name',       value: booking.user?.name || '—' },
+                { label: 'Email',      value: booking.user?.email || '—' },
+                { label: 'Price',      value: booking.price === 0 ? 'FREE' : `$${booking.price}` },
+                { label: 'Payment',    value: booking.paymentStatus === 'free' ? 'Free' : 'Paid ✓' },
               ].map(({ label, value }) => (
                 <div key={label}>
                   <div style={{ fontSize: 10, color: '#606080', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 2 }}>{label}</div>
@@ -310,23 +272,35 @@ function TicketCard({ booking, index, onExpired }: { booking: Booking; index: nu
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             <div style={{
               padding: 12,
-              background: '#fff',
+              background: isExpired ? '#1a1a2e' : '#fff',
               borderRadius: 16,
-              boxShadow: `0 0 30px ${cfg.color}44`,
+              boxShadow: isExpired ? '0 0 20px rgba(239,68,68,0.15)' : `0 0 30px ${cfg.color}44`,
+              position: 'relative', overflow: 'hidden',
             }}>
               <QRCodeSVG
                 value={qrValue}
                 size={120}
-                bgColor="#ffffff"
-                fgColor="#0B0B16"
+                bgColor={isExpired ? '#1a1a2e' : '#ffffff'}
+                fgColor={isExpired ? '#EF444466' : '#0B0B16'}
                 level="M"
               />
+              {isExpired && (
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'rgba(239,68,68,0.1)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  backdropFilter: 'blur(1px)',
+                }}>
+                  <span style={{ fontSize: 32 }}>🚫</span>
+                </div>
+              )}
             </div>
-            <div style={{ fontSize: 10, color: '#606080', textAlign: 'center', letterSpacing: 0.5 }}>
-              SCAN TO VERIFY
+            <div style={{ fontSize: 10, color: isExpired ? '#EF444488' : '#606080', textAlign: 'center', letterSpacing: 0.5 }}>
+              {isExpired ? 'TICKET EXPIRED' : 'SCAN TO VERIFY'}
             </div>
             <div style={{
-              fontSize: 11, fontWeight: 700, color: cfg.color,
+              fontSize: 11, fontWeight: 700,
+              color: isExpired ? '#EF444488' : cfg.color,
               fontFamily: 'monospace', letterSpacing: 1,
             }}>
               {booking.ticketNumber}
@@ -336,11 +310,7 @@ function TicketCard({ booking, index, onExpired }: { booking: Booking; index: nu
       </div>
 
       {/* Perforated divider */}
-      <div style={{
-        margin: '0 28px',
-        borderTop: '1.5px dashed rgba(255,255,255,0.08)',
-        position: 'relative',
-      }}>
+      <div style={{ margin: '0 28px', borderTop: '1.5px dashed rgba(255,255,255,0.08)', position: 'relative' }}>
         <div style={{ position: 'absolute', left: -40, top: -10, width: 20, height: 20, borderRadius: '50%', background: '#050816' }} />
         <div style={{ position: 'absolute', right: -40, top: -10, width: 20, height: 20, borderRadius: '50%', background: '#050816' }} />
       </div>
@@ -348,32 +318,35 @@ function TicketCard({ booking, index, onExpired }: { booking: Booking; index: nu
       {/* Footer actions */}
       <div style={{ padding: '14px 36px', display: 'flex', gap: 12, alignItems: 'center' }}>
         <motion.button
-          whileHover={{ scale: 1.04, boxShadow: `0 4px 20px ${cfg.color}44` }}
-          whileTap={{ scale: 0.97 }}
+          whileHover={!isExpired ? { scale: 1.04, boxShadow: `0 4px 20px ${cfg.color}44` } : {}}
+          whileTap={!isExpired ? { scale: 0.97 } : {}}
           onClick={handleDownload}
+          disabled={isExpired}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '9px 18px',
-            background: `linear-gradient(135deg, ${cfg.color}22, ${cfg.color}11)`,
-            border: `1px solid ${cfg.border}`,
-            borderRadius: 10, cursor: 'pointer',
-            color: cfg.color, fontSize: 13, fontWeight: 600,
+            background: isExpired ? 'rgba(255,255,255,0.02)' : `linear-gradient(135deg, ${cfg.color}22, ${cfg.color}11)`,
+            border: `1px solid ${isExpired ? 'rgba(255,255,255,0.05)' : cfg.border}`,
+            borderRadius: 10, cursor: isExpired ? 'not-allowed' : 'pointer',
+            color: isExpired ? '#404060' : cfg.color,
+            fontSize: 13, fontWeight: 600, opacity: isExpired ? 0.5 : 1,
           }}
         >
           <FiDownload size={13} /> Download PDF
         </motion.button>
 
         <motion.button
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.97 }}
+          whileHover={!isExpired ? { scale: 1.04 } : {}}
+          whileTap={!isExpired ? { scale: 0.97 } : {}}
           onClick={handleShare}
+          disabled={isExpired}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '9px 18px',
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 10, cursor: 'pointer',
-            color: '#a0a0b8', fontSize: 13, fontWeight: 600,
+            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 10, cursor: isExpired ? 'not-allowed' : 'pointer',
+            color: isExpired ? '#404060' : '#a0a0b8',
+            fontSize: 13, fontWeight: 600, opacity: isExpired ? 0.5 : 1,
           }}
         >
           <FiShare2 size={13} /> Share
@@ -390,10 +363,6 @@ function TicketCard({ booking, index, onExpired }: { booking: Booking; index: nu
 const MyTickets = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const handleExpired = (id: string) => {
-    setBookings((prev) => prev.filter((b) => b._id !== id));
-  };
 
   const fetchTickets = async () => {
     try {
@@ -417,15 +386,11 @@ const MyTickets = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
             <Link to="/" style={{ textDecoration: 'none' }}>
               <motion.div
-                whileHover={{ scale: 1.04, x: -2 }}
-                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.04, x: -2 }} whileTap={{ scale: 0.97 }}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 7,
-                  padding: '8px 16px',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 10, cursor: 'pointer',
-                  color: '#a0a0b8', fontSize: 13, fontWeight: 600,
+                  display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px',
+                  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 10, cursor: 'pointer', color: '#a0a0b8', fontSize: 13, fontWeight: 600,
                 }}
               >
                 <FiArrowLeft size={13} /> Back to Home
@@ -433,15 +398,12 @@ const MyTickets = () => {
             </Link>
             <Link to="/events" style={{ textDecoration: 'none' }}>
               <motion.div
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 7,
-                  padding: '8px 16px',
+                  display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px',
                   background: 'linear-gradient(135deg, rgba(79,70,229,0.12), rgba(124,58,237,0.08))',
                   border: '1px solid rgba(79,70,229,0.25)',
-                  borderRadius: 10, cursor: 'pointer',
-                  color: '#818cf8', fontSize: 13, fontWeight: 600,
+                  borderRadius: 10, cursor: 'pointer', color: '#818cf8', fontSize: 13, fontWeight: 600,
                 }}
               >
                 <FiHome size={13} /> Browse Events
@@ -459,16 +421,12 @@ const MyTickets = () => {
               </p>
             </div>
             <motion.button
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
               onClick={fetchTickets}
               style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '10px 18px',
-                background: 'rgba(79,70,229,0.1)',
-                border: '1px solid rgba(79,70,229,0.25)',
-                borderRadius: 10, cursor: 'pointer',
-                color: '#818cf8', fontSize: 13, fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px',
+                background: 'rgba(79,70,229,0.1)', border: '1px solid rgba(79,70,229,0.25)',
+                borderRadius: 10, cursor: 'pointer', color: '#818cf8', fontSize: 13, fontWeight: 600,
               }}
             >
               <FiRefreshCw size={13} /> Refresh
@@ -481,8 +439,7 @@ const MyTickets = () => {
             {[1, 2].map((i) => (
               <div key={i} style={{
                 height: 220, borderRadius: 24,
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.04)',
+                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)',
                 overflow: 'hidden', position: 'relative',
               }}>
                 <motion.div
@@ -498,12 +455,10 @@ const MyTickets = () => {
           </div>
         ) : bookings.length === 0 ? (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             style={{
               textAlign: 'center', padding: '80px 40px',
-              background: 'rgba(255,255,255,0.02)',
-              borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)',
+              background: 'rgba(255,255,255,0.02)', borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)',
             }}
           >
             <div style={{ fontSize: 64, marginBottom: 20 }}>🎫</div>
@@ -521,7 +476,7 @@ const MyTickets = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             <AnimatePresence>
               {bookings.map((booking, i) => (
-                <TicketCard key={booking._id} booking={booking} index={i} onExpired={handleExpired} />
+                <TicketCard key={booking._id} booking={booking} index={i} />
               ))}
             </AnimatePresence>
           </div>

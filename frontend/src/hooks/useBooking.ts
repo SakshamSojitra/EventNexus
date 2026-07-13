@@ -15,15 +15,15 @@ export interface Booking {
   paymentMethod: string;
   transactionId: string;
   bookingStatus: string;
+  ticketStatus: 'upcoming' | 'live' | 'expired'; // computed dynamically by backend
   qrCode: string;
   createdAt: string;
   eventDate?: string;
-  expiresAt?: string;
   event: {
     _id: string;
     title: string;
     banner: string;
-    dateTime: { startDate: string; startTime: string };
+    dateTime: { startDate: string; endDate: string; startTime: string; endTime: string };
     venue: { name: string; city: string; country: string };
     category: string;
   };

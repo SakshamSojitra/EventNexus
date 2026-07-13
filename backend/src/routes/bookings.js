@@ -8,23 +8,51 @@ const { protect } = require('../middleware/auth');
 
 const TICKET_PRICES = { free: 0, premium: 299, vip: 599 };
 
-// Deletes expired bookings for a user and returns remaining ones
-async function deleteExpiredAndFetch(userId) {
+/**
+ * Computes ticket status dynamically from event dateTime fields.
+ * Returns 'upcoming' | 'live' | 'expired'
+ */
+function computeTicketStatus(event) {
+  if (!event || !event.dateTime) return 'upcoming';
+
+  const { startDate, endDate, startTime, endTime } = event.dateTime;
   const now = new Date();
 
-  // Mark expired
-  await Booking.updateMany(
-    { user: userId, expiresAt: { $lte: now }, bookingStatus: 'confirmed' },
-    { bookingStatus: 'expired' }
-  );
+  // Parse "HH:MM AM/PM" or "HH:MM" into hours + minutes
+  function parseTime(timeStr) {
+    if (!timeStr) return { h: 0, m: 0 };
+    const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+    if (!match) return { h: 0, m: 0 };
+    let h = parseInt(match[1], 10);
+    const m = parseInt(match[2], 10);
+    const period = match[3]?.toUpperCase();
+    if (period === 'PM' && h !== 12) h += 12;
+    if (period === 'AM' && h === 12) h = 0;
+    return { h, m };
+  }
 
-  // Hard delete expired tickets
-  await Booking.deleteMany({ user: userId, bookingStatus: 'expired' });
+  // Build a Date from a date field + time string
+  function buildDateTime(dateField, timeStr) {
+    const base = new Date(dateField);
+    const { h, m } = parseTime(timeStr);
+    return new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, m, 0);
+  }
 
-  return Booking.find({ user: userId })
-    .populate('event', 'title dateTime venue banner category')
-    .populate('user', 'name email phone')
-    .sort({ createdAt: -1 });
+  const eventStart = buildDateTime(startDate, startTime);
+  const eventEnd   = buildDateTime(endDate || startDate, endTime || startTime);
+
+  if (now < eventStart) return 'upcoming';
+  if (now >= eventStart && now <= eventEnd) return 'live';
+  return 'expired';
+}
+
+/** Attach computed ticketStatus to each booking object */
+function withStatus(bookings) {
+  return bookings.map((b) => {
+    const obj = b.toObject();
+    obj.ticketStatus = computeTicketStatus(obj.event);
+    return obj;
+  });
 }
 
 // POST /api/book-ticket
@@ -38,20 +66,6 @@ router.post('/book-ticket', protect, async (req, res) => {
 
     const event = await Event.findById(eventId).catch(() => null);
     const eventRef = event ? eventId : null;
-
-    // Determine event end time: use provided eventDate, or event's endDate, or default 24h from now
-    let eventEndDate = null;
-    if (eventDate) {
-      eventEndDate = new Date(eventDate);
-    } else if (event?.dateTime?.endDate) {
-      eventEndDate = new Date(event.dateTime.endDate);
-    } else {
-      // Demo: event ends 24 hours from now
-      eventEndDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    }
-
-    // Grace period: ticket stays 1 hour after event ends, then auto-deletes
-    const expiresAt = new Date(eventEndDate.getTime() + 60 * 60 * 1000);
 
     const price = TICKET_PRICES[ticketType];
     const bookingId = uuidv4();
@@ -77,8 +91,6 @@ router.post('/book-ticket', protect, async (req, res) => {
       bookingStatus: 'confirmed',
       qrCode,
       ticketNumber,
-      eventDate: eventEndDate,
-      expiresAt,
     });
 
     const populated = await Booking.findById(booking._id)
@@ -91,11 +103,14 @@ router.post('/book-ticket', protect, async (req, res) => {
   }
 });
 
-// GET /api/my-ticket — auto-deletes expired before returning
+// GET /api/my-ticket
 router.get('/my-ticket', protect, async (req, res) => {
   try {
-    const bookings = await deleteExpiredAndFetch(req.user._id);
-    res.json(bookings);
+    const bookings = await Booking.find({ user: req.user._id })
+      .populate('event', 'title dateTime venue banner category')
+      .populate('user', 'name email phone')
+      .sort({ createdAt: -1 });
+    res.json(withStatus(bookings));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -112,7 +127,39 @@ router.get('/ticket/:bookingId', protect, async (req, res) => {
     if (booking.user._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized' });
     }
-    res.json(booking);
+    const obj = booking.toObject();
+    obj.ticketStatus = computeTicketStatus(obj.event);
+    res.json(obj);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/tickets/verify/:ticketId  — public QR scan endpoint (no auth required)
+router.get('/tickets/verify/:ticketId', async (req, res) => {
+  try {
+    const booking = await Booking.findOne({
+      $or: [
+        { bookingId: req.params.ticketId },
+        { ticketNumber: req.params.ticketId },
+      ],
+    })
+      .populate('event', 'title dateTime venue banner category')
+      .populate('user', 'name email phone');
+
+    if (!booking) {
+      return res.status(404).json({ status: 'invalid', message: 'Ticket not found.' });
+    }
+
+    const obj = booking.toObject();
+    const ticketStatus = computeTicketStatus(obj.event);
+    obj.ticketStatus = ticketStatus;
+
+    res.json({
+      status: ticketStatus === 'expired' ? 'expired' : 'verified',
+      ticketStatus,
+      booking: obj,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

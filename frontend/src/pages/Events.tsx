@@ -200,7 +200,8 @@ const Events = () => {
             dateTime: { startDate: (e.dateTime as { startDate?: string })?.startDate ?? '' },
           };
         });
-        setEvents(mapped);
+        // If DB has no published events yet, show mock data so the page is never blank
+        setEvents(mapped.length > 0 ? mapped : MOCK_EVENTS);
       } catch {
         // Only use mock data when the API server is unreachable
         setEvents(MOCK_EVENTS);

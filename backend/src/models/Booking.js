@@ -13,8 +13,7 @@ const bookingSchema = new mongoose.Schema({
   bookingStatus: { type: String, enum: ['confirmed', 'cancelled', 'pending', 'expired'], default: 'confirmed' },
   qrCode: { type: String, required: true },
   ticketNumber: { type: String, unique: true },
-  eventDate: { type: Date, default: null },   // actual event end datetime
-  expiresAt: { type: Date, default: null },    // when ticket auto-deletes (eventDate + 1hr grace)
+  eventDate: { type: Date, default: null },   // kept for legacy reference
 }, { timestamps: true });
 
 bookingSchema.pre('save', function (next) {
