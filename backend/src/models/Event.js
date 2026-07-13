@@ -31,9 +31,9 @@ const eventSchema = new mongoose.Schema({
   },
   venue: {
     name: { type: String, required: true },
-    address: { type: String, required: true },
+    address: { type: String, default: '' },
     city: { type: String, required: true },
-    country: { type: String, required: true },
+    country: { type: String, default: '' },
     coordinates: {
       lat: Number,
       lng: Number,

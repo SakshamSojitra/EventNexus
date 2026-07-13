@@ -15,10 +15,10 @@ const Register = () => {
   const { register, isLoading } = useStore();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, selectedRole?: string) => {
     e.preventDefault();
     try {
-      await register(name, email, password, role);
+      await register(name, email, password, selectedRole || role);
       toast.success('Account created!');
       navigate('/dashboard');
     } catch (error: any) {
@@ -101,7 +101,7 @@ const Register = () => {
                 key={r.value}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                onClick={() => { setRole(r.value); handleSubmit(new Event('submit') as any); }}
+                onClick={() => { setRole(r.value); handleSubmit(new Event('submit') as any, r.value); }}
                 style={{
                   padding: 24, background: role === r.value ? 'rgba(79, 70, 229, 0.1)' : 'rgba(255,255,255,0.03)',
                   borderRadius: 16, border: role === r.value ? '1px solid rgba(79, 70, 229, 0.3)' : '1px solid rgba(255,255,255,0.06)',

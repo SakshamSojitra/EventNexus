@@ -54,6 +54,33 @@ interface ValidationErrors {
   [key: string]: string;
 }
 
+// ---- Form Field Component (defined OUTSIDE CreateEvent to prevent remount on every render) ----
+const FormField = ({
+  label, icon: Icon, error, children
+}: {
+  label: string;
+  icon?: React.ComponentType<any>;
+  error?: string;
+  children: React.ReactNode;
+}) => (
+  <div style={{ marginBottom: 20 }}>
+    <label style={{ fontSize: 13, color: '#a0a0b8', marginBottom: 8, display: 'block', fontWeight: 500 }}>
+      {Icon && <Icon size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} />}
+      {label}
+    </label>
+    {children}
+    {error && (
+      <motion.div
+        initial={{ opacity: 0, y: -5 }}
+        animate={{ opacity: 1, y: 0 }}
+        style={{ fontSize: 12, color: '#ef4444', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}
+      >
+        <FiAlertCircle size={12} /> {error}
+      </motion.div>
+    )}
+  </div>
+);
+
 const CreateEvent = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useStore();
@@ -227,33 +254,6 @@ const CreateEvent = () => {
       setIsSubmitting(false);
     }
   }, [formData, navigate, isAuthenticated, user, validateStep]);
-
-  // ---- Form Field Component ----
-  const FormField = ({ 
-    label, icon: Icon, error, children 
-  }: { 
-    label: string; 
-    icon?: React.ComponentType<any>; 
-    error?: string; 
-    children: React.ReactNode 
-  }) => (
-    <div style={{ marginBottom: 20 }}>
-      <label style={{ fontSize: 13, color: '#a0a0b8', marginBottom: 8, display: 'block', fontWeight: 500 }}>
-        {Icon && <Icon size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} />}
-        {label}
-      </label>
-      {children}
-      {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -5 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{ fontSize: 12, color: '#ef4444', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}
-        >
-          <FiAlertCircle size={12} /> {error}
-        </motion.div>
-      )}
-    </div>
-  );
 
   // ---- Render ----
   return (

@@ -61,11 +61,13 @@ router.post('/', protect, authorize('organizer', 'admin'), async (req, res) => {
     const eventData = {
       ...req.body,
       organizer: req.user._id,
+      status: req.body.status || 'published',
     };
-
     const event = await Event.create(eventData);
-    res.status(201).json(event);
+    const populated = await Event.findById(event._id).populate('organizer', 'name email avatar');
+    res.status(201).json(populated);
   } catch (error) {
+    console.error('[CreateEvent Error]', error.message);
     res.status(500).json({ message: error.message });
   }
 });

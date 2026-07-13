@@ -184,23 +184,25 @@ const Events = () => {
         if (category !== 'all') params.category = category;
 
         const { data } = await API.get('/events', { params });
-        if (data.events?.length > 0) {
-          const mapped = data.events.map((e: Record<string, unknown>) => ({
+        // Always use real DB data — only fall back to mock if request itself fails
+        const mapped = (data.events ?? []).map((e: Record<string, unknown>) => {
+          const venue = e.venue as { name?: string; city?: string; country?: string } | undefined;
+          const locationParts = [venue?.city, venue?.country].filter(Boolean);
+          return {
             _id: e._id as string,
             title: e.title as string,
             category: e.category as string,
-            location: `${(e.venue as { city?: string })?.city || ''}, ${(e.venue as { country?: string })?.country || ''}`,
+            location: locationParts.length > 0 ? locationParts.join(', ') : (venue?.name ?? 'TBD'),
             price: (e.tickets as { price?: number }[])?.[0]?.price ?? 0,
             popularity: (e.popularity as number) ?? 0,
             attendees: (e.attendees as unknown[])?.length ?? 0,
             banner: (e.banner as string) ?? '',
             dateTime: { startDate: (e.dateTime as { startDate?: string })?.startDate ?? '' },
-          }));
-          setEvents(mapped);
-        } else {
-          setEvents(MOCK_EVENTS);
-        }
+          };
+        });
+        setEvents(mapped);
       } catch {
+        // Only use mock data when the API server is unreachable
         setEvents(MOCK_EVENTS);
       } finally {
         setLoading(false);
