@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -509,7 +509,7 @@ const CreateEvent = () => {
                       <strong style={{ color: '#c0c0d0' }}>{formData.title || 'No title'}</strong><br />
                       {formData.category} - {formData.venueName || 'TBD'}, {formData.venueCity || 'TBD'}<br />
                       {formData.startDate || 'TBD'} {formData.startTime || ''} to {formData.endTime || ''}<br />
-                      {formData.ticketType === 'free' ? 'Free Entry' : '$' + formData.ticketPrice + ' per ticket'} - {formData.ticketQuantity} tickets
+                      {formData.ticketType === 'free' ? 'Free Entry' : `${formData.ticketPrice} per ticket`} - {formData.ticketQuantity} tickets
                     </div>
                   </div>
                 </motion.div>

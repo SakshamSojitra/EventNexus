@@ -6,12 +6,6 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
-const authRoutes = require('./routes/auth');
-const eventRoutes = require('./routes/events');
-const ticketRoutes = require('./routes/tickets');
-const userRoutes = require('./routes/users');
-const adminRoutes = require('./routes/admin');
-const bookingRoutes = require('./routes/bookings');
 
 dotenv.config({ path: './.env' });
 
@@ -25,90 +19,71 @@ const io = new Server(server, {
   },
 });
 
-// Connect to MongoDB
-connectDB();
+// Connect DB then seed admin
+connectDB().then(seedAdmin);
+
+async function seedAdmin() {
+  try {
+    const User = require('./models/User');
+    const existing = await User.findOne({ email: 'admin@eventnexus.com' });
+    if (!existing) {
+      await User.create({
+        name: 'Admin',
+        email: 'admin@eventnexus.com',
+        password: 'Admin@123',
+        role: 'admin',
+        isVerified: true,
+      });
+      console.log('✅ Default admin created: admin@eventnexus.com / Admin@123');
+    }
+  } catch (e) {
+    console.error('Admin seed error:', e.message);
+  }
+}
 
 // Middleware
-app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true,
-}));
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }));
 app.use(morgan('dev'));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
-// Make io accessible to routes
 app.set('io', io);
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/events', eventRoutes);
-app.use('/api/tickets', ticketRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api', bookingRoutes);
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/events', require('./routes/events'));
+app.use('/api/tickets', require('./routes/tickets'));
+app.use('/api/users', require('./routes/users'));
+app.use('/api/admin', require('./routes/admin'));
+app.use('/api', require('./routes/bookings'));
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
-});
+app.get('/api/health', (_req, res) => res.json({ status: 'healthy', timestamp: new Date().toISOString() }));
 
-// Socket.io connection handling
+// Socket.io
 const onlineUsers = new Map();
-
 io.on('connection', (socket) => {
-  console.log('New client connected:', socket.id);
-
   socket.on('user:online', (userId) => {
     onlineUsers.set(userId, socket.id);
     io.emit('users:online-count', onlineUsers.size);
   });
-
   socket.on('event:join', (eventId) => {
     socket.join(`event:${eventId}`);
-    const room = io.sockets.adapter.rooms.get(`event:${eventId}`);
-    const count = room ? room.size : 0;
+    const count = io.sockets.adapter.rooms.get(`event:${eventId}`)?.size || 0;
     io.to(`event:${eventId}`).emit('event:attendee-count', count);
   });
-
   socket.on('event:leave', (eventId) => {
     socket.leave(`event:${eventId}`);
-    const room = io.sockets.adapter.rooms.get(`event:${eventId}`);
-    const count = room ? room.size : 0;
+    const count = io.sockets.adapter.rooms.get(`event:${eventId}`)?.size || 0;
     io.to(`event:${eventId}`).emit('event:attendee-count', count);
   });
-
-  socket.on('chat:message', (data) => {
-    io.to(`event:${data.eventId}`).emit('chat:message', data);
-  });
-
-  socket.on('ticket:purchase', (data) => {
-    io.to(`event:${data.eventId}`).emit('ticket:sold', data);
-    io.emit('notification:ticket-sold', data);
-  });
-
-  socket.on('event:announcement', (data) => {
-    io.to(`event:${data.eventId}`).emit('event:announcement', data);
-  });
-
   socket.on('disconnect', () => {
-    for (const [userId, socketId] of onlineUsers.entries()) {
-      if (socketId === socket.id) {
-        onlineUsers.delete(userId);
-        break;
-      }
+    for (const [uid, sid] of onlineUsers.entries()) {
+      if (sid === socket.id) { onlineUsers.delete(uid); break; }
     }
     io.emit('users:online-count', onlineUsers.size);
-    console.log('Client disconnected:', socket.id);
   });
 });
 
 const PORT = process.env.PORT || 5000;
-
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Socket.io server initialized`);
-});
-
+server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 module.exports = { app, server, io };

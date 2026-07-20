@@ -1,89 +1,80 @@
 import { create } from 'zustand';
 import axios from 'axios';
 
-interface User {
+export interface User {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: 'attendee' | 'admin';
   avatar: string;
-  referralCode: string;
-}
-
-interface Notification {
-  id: string;
-  message: string;
-  type: string;
-  read: boolean;
-  createdAt: string;
+  referralCode?: string;
+  isActive?: boolean;
+  isSuspended?: boolean;
 }
 
 interface StoreState {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
-  notifications: Notification[];
-  onlineUsers: number;
   isLoading: boolean;
-  ticketCount: number;
 
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string, role: string) => Promise<void>;
+  adminLogin: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
-  setOnlineUsers: (count: number) => void;
-  addNotification: (notification: Notification) => void;
-  setLoading: (loading: boolean) => void;
-  setTicketCount: (count: number) => void;
+  setLoading: (v: boolean) => void;
 }
 
-export const useStore = create<StoreState>((set, get) => ({
+export const useStore = create<StoreState>((set) => ({
   user: null,
   token: localStorage.getItem('token'),
   isAuthenticated: !!localStorage.getItem('token'),
-  notifications: [],
-  onlineUsers: 0,
   isLoading: false,
-  ticketCount: 0,
 
   setUser: (user) => set({ user, isAuthenticated: !!user }),
   setToken: (token) => {
-    if (token) {
-      localStorage.setItem('token', token);
-    } else {
-      localStorage.removeItem('token');
-    }
+    token ? localStorage.setItem('token', token) : localStorage.removeItem('token');
     set({ token });
   },
-  setOnlineUsers: (count) => set({ onlineUsers: count }),
-  addNotification: (notification) =>
-    set((state) => ({ notifications: [notification, ...state.notifications] })),
-  setLoading: (loading) => set({ isLoading: loading }),
-  setTicketCount: (count) => set({ ticketCount: count }),
+  setLoading: (v) => set({ isLoading: v }),
 
   login: async (email, password) => {
+    set({ isLoading: true });
     try {
-      set({ isLoading: true });
       const { data } = await axios.post('/api/auth/login', { email, password });
       localStorage.setItem('token', data.token);
       set({ user: data.user, token: data.token, isAuthenticated: true });
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Login failed');
+    } catch (e: any) {
+      throw new Error(e.response?.data?.message || 'Login failed');
     } finally {
       set({ isLoading: false });
     }
   },
 
-  register: async (name, email, password, role) => {
+  adminLogin: async (email, password) => {
+    set({ isLoading: true });
     try {
-      set({ isLoading: true });
-      const { data } = await axios.post('/api/auth/register', { name, email, password, role });
+      const { data } = await axios.post('/api/auth/admin/login', { email, password });
       localStorage.setItem('token', data.token);
       set({ user: data.user, token: data.token, isAuthenticated: true });
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Registration failed');
+    } catch (e: any) {
+      throw new Error(e.response?.data?.message || 'Admin login failed');
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  register: async (name, email, password) => {
+    set({ isLoading: true });
+    try {
+      const { data } = await axios.post('/api/auth/register', { name, email, password });
+      localStorage.setItem('token', data.token);
+      set({ user: data.user, token: data.token, isAuthenticated: true });
+    } catch (e: any) {
+      throw new Error(e.response?.data?.message || 'Registration failed');
     } finally {
       set({ isLoading: false });
     }
@@ -97,7 +88,6 @@ export const useStore = create<StoreState>((set, get) => ({
   checkAuth: async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
-
     try {
       const { data } = await axios.get('/api/auth/me', {
         headers: { Authorization: `Bearer ${token}` },

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const QRCode = require('qrcode');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto'); // Node built-in, no package needed
 const Booking = require('../models/Booking');
 const Event = require('../models/Event');
 const { protect } = require('../middleware/auth');
@@ -68,7 +68,7 @@ router.post('/book-ticket', protect, async (req, res) => {
     const eventRef = event ? eventId : null;
 
     const price = TICKET_PRICES[ticketType];
-    const bookingId = uuidv4();
+    const bookingId = randomUUID();
     const rand = Math.floor(10000 + Math.random() * 90000);
     const ticketNumber = `EVT-2026-${rand}`;
 

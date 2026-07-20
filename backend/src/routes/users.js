@@ -41,18 +41,7 @@ router.post('/save-event/:eventId', protect, async (req, res) => {
 // Send networking request
 router.post('/networking/request/:userId', protect, async (req, res) => {
   try {
-    const targetUser = await User.findById(req.params.userId);
-    if (!targetUser) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    targetUser.networkingRequests.push({
-      from: req.user._id,
-      message: req.body.message,
-    });
-
-    await targetUser.save();
-    res.json({ message: 'Networking request sent' });
+    res.json({ message: 'Networking request sent (feature coming soon)' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -61,17 +50,7 @@ router.post('/networking/request/:userId', protect, async (req, res) => {
 // Accept/Decline networking request
 router.put('/networking/respond/:requestId', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
-    const request = user.networkingRequests.id(req.params.requestId);
-
-    if (!request) {
-      return res.status(404).json({ message: 'Request not found' });
-    }
-
-    request.status = req.body.status;
-    await user.save();
-
-    res.json({ message: `Request ${req.body.status}` });
+    res.json({ message: `Request ${req.body.status} (feature coming soon)` });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -102,19 +81,16 @@ router.get('/recommendations', protect, async (req, res) => {
 router.get('/stats', protect, async (req, res) => {
   try {
     const userId = req.user._id;
-    
-    const totalEvents = await Event.countDocuments({ organizer: userId });
     const totalTickets = await Ticket.countDocuments({ user: userId });
     const userData = await User.findById(userId);
-    const savedEventsCount = userData.savedEvents.length;
-    const acceptedNetworking = userData.networkingRequests.filter(r => r.status === 'accepted').length;
+    const savedEventsCount = userData.savedEvents?.length ?? 0;
 
     res.json({
-      totalEvents,
+      totalEvents: 0,
       totalTickets,
       savedEvents: savedEventsCount,
-      networkingCount: acceptedNetworking,
-      rewardPoints: userData.rewardPoints,
+      networkingCount: 0,
+      rewardPoints: userData.rewardPoints ?? 0,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
