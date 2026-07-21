@@ -16,7 +16,14 @@ API.interceptors.request.use((config) => {
 API.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('[API Error]', error.response?.data || error.message);
+    console.error('[API Error]', error.response?.status, error.response?.data || error.message);
+    // If 401 unauthorized, clear token and redirect to login
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      if (window.location.pathname.startsWith('/admin') && !window.location.pathname.includes('/login')) {
+        window.location.href = '/admin/login';
+      }
+    }
     return Promise.reject(error);
   }
 );

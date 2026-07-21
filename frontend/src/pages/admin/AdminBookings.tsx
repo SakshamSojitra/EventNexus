@@ -32,8 +32,12 @@ export default function AdminBookings() {
       if (search) params.search = search;
       if (status) params.status = status;
       const { data } = await API.get('/admin/bookings', { params });
-      setBookings(data.bookings); setTotal(data.total);
-    } catch { toast.error('Failed to load bookings'); }
+      setBookings(data.bookings || []); setTotal(data.total || 0);
+    } catch {
+      if (bookings.length === 0) {
+        toast.error('Failed to load bookings');
+      }
+    }
     finally { setLoading(false); }
   };
 

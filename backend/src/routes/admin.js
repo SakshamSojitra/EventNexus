@@ -16,50 +16,87 @@ router.use(protect, authorize('admin'));
 const audit = (req, action, target, details) =>
   AuditLog.create({ admin: req.user._id, action, target, details, ip: req.ip }).catch(() => {});
 
+// Soft-delete safe match helper
+const notDeleted = { $or: [{ deletedAt: null }, { deletedAt: { $exists: false } }] };
+
 // ── DASHBOARD ──────────────────────────────────────────────
 router.get('/dashboard', async (req, res) => {
   try {
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(startOfToday.getTime() + 86400000);
 
     const [
-      totalUsers, totalEvents, totalBookings,
-      upcomingEvents, completedEvents, cancelledEvents,
-      todayEvents, totalRevenueAgg, monthlyRevenueAgg,
-      ticketsSold, recentBookings, recentUsers, topEvents,
+      totalUsers,
+      totalEvents,
+      totalBookings,
+      upcomingEvents,
+      completedEvents,
+      cancelledEvents,
+      todayEvents,
+      totalRevenueAgg,
+      monthlyRevenueAgg,
+      ticketsSoldAgg,
+      recentBookings,
+      recentUsers,
+      topEvents,
     ] = await Promise.all([
-      User.countDocuments({ role: 'attendee', deletedAt: null }),
-      Event.countDocuments({ deletedAt: null }),
-      Booking.countDocuments({ deletedAt: null }),
-      Event.countDocuments({ status: 'published', 'dateTime.startDate': { $gte: now }, deletedAt: null }),
-      Event.countDocuments({ status: 'completed', deletedAt: null }),
-      Event.countDocuments({ status: 'cancelled', deletedAt: null }),
-      Event.countDocuments({ 'dateTime.startDate': { $gte: startOfToday, $lt: new Date(startOfToday.getTime() + 86400000) }, deletedAt: null }),
-      Booking.aggregate([{ $match: { paymentStatus: 'paid', deletedAt: null } }, { $group: { _id: null, total: { $sum: '$price' } } }]),
-      Booking.aggregate([{ $match: { paymentStatus: 'paid', createdAt: { $gte: startOfMonth }, deletedAt: null } }, { $group: { _id: null, total: { $sum: '$price' } } }]),
-      Booking.countDocuments({ bookingStatus: 'confirmed', deletedAt: null }),
-      Booking.find({ deletedAt: null }).sort({ createdAt: -1 }).limit(8).populate('user', 'name email avatar').populate('event', 'title banner'),
-      User.find({ role: 'attendee', deletedAt: null }).sort({ createdAt: -1 }).limit(8).select('name email avatar createdAt'),
+      User.countDocuments({ role: 'attendee', ...notDeleted }).catch(() => 0),
+      Event.countDocuments(notDeleted).catch(() => 0),
+      Booking.countDocuments(notDeleted).catch(() => 0),
+      Event.countDocuments({ status: 'published', 'dateTime.startDate': { $gte: now }, ...notDeleted }).catch(() => 0),
+      Event.countDocuments({ status: 'completed', ...notDeleted }).catch(() => 0),
+      Event.countDocuments({ status: 'cancelled', ...notDeleted }).catch(() => 0),
+      Event.countDocuments({ 'dateTime.startDate': { $gte: startOfToday, $lt: endOfToday }, ...notDeleted }).catch(() => 0),
+      Booking.aggregate([
+        { $match: { paymentStatus: { $in: ['paid', 'free'] }, ...notDeleted } },
+        { $group: { _id: null, total: { $sum: '$price' } } },
+      ]).catch(() => []),
+      Booking.aggregate([
+        { $match: { paymentStatus: { $in: ['paid', 'free'] }, createdAt: { $gte: new Date(now.getFullYear(), now.getMonth(), 1) }, ...notDeleted } },
+        { $group: { _id: null, total: { $sum: '$price' } } },
+      ]).catch(() => []),
+      Booking.countDocuments({ bookingStatus: 'confirmed', ...notDeleted }).catch(() => 0),
+      Booking.find(notDeleted)
+        .sort({ createdAt: -1 })
+        .limit(8)
+        .populate('user', 'name email avatar')
+        .populate('event', 'title banner')
+        .catch(() => []),
+      User.find({ role: 'attendee', ...notDeleted })
+        .sort({ createdAt: -1 })
+        .limit(8)
+        .select('name email avatar createdAt')
+        .catch(() => []),
       Booking.aggregate([
         { $match: { deletedAt: null } },
         { $group: { _id: '$event', count: { $sum: 1 }, revenue: { $sum: '$price' } } },
-        { $sort: { count: -1 } }, { $limit: 5 },
+        { $sort: { count: -1 } },
+        { $limit: 5 },
         { $lookup: { from: 'events', localField: '_id', foreignField: '_id', as: 'event' } },
-        { $unwind: '$event' },
-      ]),
+        { $unwind: { path: '$event', preserveNullAndEmptyArrays: true } },
+      ]).catch(() => []),
     ]);
 
     res.json({
       stats: {
-        totalUsers, totalEvents, totalBookings, upcomingEvents,
-        completedEvents, cancelledEvents, todayEvents, ticketsSold,
-        totalRevenue: totalRevenueAgg[0]?.total || 0,
-        monthlyRevenue: monthlyRevenueAgg[0]?.total || 0,
+        totalUsers: totalUsers || 0,
+        totalEvents: totalEvents || 0,
+        totalBookings: totalBookings || 0,
+        upcomingEvents: upcomingEvents || 0,
+        completedEvents: completedEvents || 0,
+        cancelledEvents: cancelledEvents || 0,
+        todayEvents: todayEvents || 0,
+        ticketsSold: ticketsSoldAgg || 0,
+        totalRevenue: (totalRevenueAgg[0]?.total || 0),
+        monthlyRevenue: (monthlyRevenueAgg[0]?.total || 0),
       },
-      recentBookings, recentUsers, topEvents,
+      recentBookings: recentBookings || [],
+      recentUsers: recentUsers || [],
+      topEvents: topEvents || [],
     });
   } catch (err) {
+    console.error('[Admin Dashboard Error]:', err.message);
     res.status(500).json({ message: err.message });
   }
 });
@@ -68,36 +105,37 @@ router.get('/dashboard', async (req, res) => {
 router.get('/analytics', async (req, res) => {
   try {
     const revenueByMonth = await Booking.aggregate([
-      { $match: { paymentStatus: 'paid', deletedAt: null } },
+      { $match: { paymentStatus: { $in: ['paid', 'free'] }, ...notDeleted } },
       { $group: { _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } }, revenue: { $sum: '$price' }, bookings: { $sum: 1 } } },
       { $sort: { '_id.year': 1, '_id.month': 1 } }, { $limit: 12 },
     ]);
 
     const bookingsByMonth = await Booking.aggregate([
-      { $match: { deletedAt: null } },
+      { $match: notDeleted },
       { $group: { _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } }, count: { $sum: 1 } } },
       { $sort: { '_id.year': 1, '_id.month': 1 } }, { $limit: 12 },
     ]);
 
     const categoryDist = await Event.aggregate([
-      { $match: { deletedAt: null } },
+      { $match: notDeleted },
       { $group: { _id: '$category', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
     ]);
 
     const userGrowth = await User.aggregate([
-      { $match: { role: 'attendee', deletedAt: null } },
+      { $match: { role: 'attendee', ...notDeleted } },
       { $group: { _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } }, count: { $sum: 1 } } },
       { $sort: { '_id.year': 1, '_id.month': 1 } }, { $limit: 12 },
     ]);
 
     const ticketTypeBreakdown = await Booking.aggregate([
-      { $match: { deletedAt: null } },
+      { $match: notDeleted },
       { $group: { _id: '$ticketType', count: { $sum: 1 }, revenue: { $sum: '$price' } } },
     ]);
 
     res.json({ revenueByMonth, bookingsByMonth, categoryDist, userGrowth, ticketTypeBreakdown });
   } catch (err) {
+    console.error('[Admin Analytics Error]:', err.message);
     res.status(500).json({ message: err.message });
   }
 });
@@ -106,7 +144,7 @@ router.get('/analytics', async (req, res) => {
 router.get('/events', async (req, res) => {
   try {
     const { page = 1, limit = 20, status, category, search, featured } = req.query;
-    const q = { deletedAt: null };
+    const q = { ...notDeleted };
     if (status) q.status = status;
     if (category) q.category = category;
     if (featured === 'true') q.featured = true;
@@ -116,11 +154,28 @@ router.get('/events', async (req, res) => {
       .populate('organizer', 'name email')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .lean();
+
+    // Compute ticketsSold for each event from bookings
+    const eventIds = events.map(e => e._id);
+    const bookingCounts = await Booking.aggregate([
+      { $match: { event: { $in: eventIds }, ...notDeleted } },
+      { $group: { _id: '$event', ticketsSold: { $sum: 1 }, totalRevenue: { $sum: '$price' } } },
+    ]);
+    const bookingMap = {};
+    bookingCounts.forEach(b => { bookingMap[b._id.toString()] = b; });
+
+    const eventsWithStats = events.map(event => ({
+      ...event,
+      ticketsSold: bookingMap[event._id.toString()]?.ticketsSold || event.attendees?.length || 0,
+      totalRevenue: bookingMap[event._id.toString()]?.totalRevenue || 0,
+    }));
 
     const total = await Event.countDocuments(q);
-    res.json({ events, total, totalPages: Math.ceil(total / limit) });
+    res.json({ events: eventsWithStats, total, totalPages: Math.ceil(total / limit) });
   } catch (err) {
+    console.error('[Admin Events Error]:', err.message);
     res.status(500).json({ message: err.message });
   }
 });
@@ -130,6 +185,19 @@ router.post('/events', async (req, res) => {
     const event = await Event.create({ ...req.body, organizer: req.user._id });
     await audit(req, 'CREATE_EVENT', `Event:${event._id}`, { title: event.title });
     res.status(201).json(event);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Bulk event status update — must be BEFORE /:id route to avoid clash
+router.put('/events/bulk/status', async (req, res) => {
+  try {
+    const { ids, status } = req.body;
+    if (!ids?.length) return res.status(400).json({ message: 'No event IDs provided' });
+    await Event.updateMany({ _id: { $in: ids } }, { status });
+    await audit(req, 'BULK_UPDATE_EVENTS', 'Events', { ids, status });
+    res.json({ message: `${ids.length} events updated` });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -156,23 +224,12 @@ router.delete('/events/:id', async (req, res) => {
   }
 });
 
-// Bulk event status update
-router.put('/events/bulk/status', async (req, res) => {
-  try {
-    const { ids, status } = req.body;
-    await Event.updateMany({ _id: { $in: ids } }, { status });
-    await audit(req, 'BULK_UPDATE_EVENTS', 'Events', { ids, status });
-    res.json({ message: `${ids.length} events updated` });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
 
 // ── USER MANAGEMENT ───────────────────────────────────────
 router.get('/users', async (req, res) => {
   try {
     const { page = 1, limit = 20, search, status, sort = '-createdAt' } = req.query;
-    const q = { role: 'attendee', deletedAt: null };
+    const q = { role: 'attendee', ...notDeleted };
     if (search) q.$or = [{ name: { $regex: search, $options: 'i' } }, { email: { $regex: search, $options: 'i' } }];
     if (status === 'active') q.isActive = true;
     if (status === 'suspended') q.isSuspended = true;
@@ -194,7 +251,7 @@ router.get('/users/:id', async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
     if (!user) return res.status(404).json({ message: 'User not found' });
-    const bookings = await Booking.find({ user: req.params.id, deletedAt: null })
+    const bookings = await Booking.find({ user: req.params.id, ...notDeleted })
       .populate('event', 'title dateTime banner').sort({ createdAt: -1 });
     res.json({ user, bookings });
   } catch (err) {
@@ -235,7 +292,7 @@ router.delete('/users/:id', async (req, res) => {
 router.get('/bookings', async (req, res) => {
   try {
     const { page = 1, limit = 20, status, search, event, from, to } = req.query;
-    const q = { deletedAt: null };
+    const q = { ...notDeleted };
     if (status) q.bookingStatus = status;
     if (event) q.event = event;
     if (from || to) {
@@ -244,48 +301,36 @@ router.get('/bookings', async (req, res) => {
       if (to) q.createdAt.$lte = new Date(to);
     }
 
-    let pipeline = [
-      { $match: q },
-      {
-        $lookup: {
-          from: 'users', localField: 'user', foreignField: '_id',
-          as: 'user', pipeline: [{ $project: { name: 1, email: 1, avatar: 1 } }],
-        },
-      },
-      { $unwind: { path: '$user', preserveNullAndEmpty: true } },
-      {
-        $lookup: {
-          from: 'events', localField: 'event', foreignField: '_id',
-          as: 'event', pipeline: [{ $project: { title: 1, banner: 1, dateTime: 1 } }],
-        },
-      },
-      { $unwind: { path: '$event', preserveNullAndEmpty: true } },
-    ];
-
+    // Build search filter for user name/email or ticket number
+    let searchFilter = {};
     if (search) {
-      pipeline.push({
-        $match: {
-          $or: [
-            { 'user.name': { $regex: search, $options: 'i' } },
-            { 'user.email': { $regex: search, $options: 'i' } },
-            { ticketNumber: { $regex: search, $options: 'i' } },
-          ],
-        },
-      });
+      searchFilter = {
+        $or: [
+          { ticketNumber: { $regex: search, $options: 'i' } },
+          { bookingId: { $regex: search, $options: 'i' } },
+        ],
+      };
     }
 
-    const countPipeline = [...pipeline, { $count: 'total' }];
-    pipeline.push({ $sort: { createdAt: -1 } });
-    pipeline.push({ $skip: (page - 1) * parseInt(limit) });
-    pipeline.push({ $limit: parseInt(limit) });
+    const matchStage = { ...q, ...searchFilter };
 
-    const [bookings, countResult] = await Promise.all([
-      Booking.aggregate(pipeline),
-      Booking.aggregate(countPipeline),
-    ]);
+    const bookings = await Booking.find(matchStage)
+      .populate('user', 'name email avatar phone')
+      .populate('event', 'title banner dateTime venue category')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * parseInt(limit))
+      .limit(parseInt(limit))
+      .lean();
 
-    res.json({ bookings, total: countResult[0]?.total || 0, totalPages: Math.ceil((countResult[0]?.total || 0) / limit) });
+    const total = await Booking.countDocuments(matchStage);
+
+    res.json({
+      bookings,
+      total,
+      totalPages: Math.ceil(total / parseInt(limit)),
+    });
   } catch (err) {
+    console.error('[Admin Bookings Error]:', err.message);
     res.status(500).json({ message: err.message });
   }
 });
@@ -307,7 +352,7 @@ router.put('/bookings/:id/status', async (req, res) => {
 // ── CATEGORY MANAGEMENT ───────────────────────────────────
 router.get('/categories', async (req, res) => {
   try {
-    const categories = await Category.find({ deletedAt: null }).sort({ sortOrder: 1, name: 1 });
+    const categories = await Category.find(notDeleted).sort({ sortOrder: 1, name: 1 });
     res.json(categories);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -317,7 +362,6 @@ router.get('/categories', async (req, res) => {
 router.post('/categories', async (req, res) => {
   try {
     const body = { ...req.body };
-    // auto-generate slug from name if not provided
     if (!body.slug && body.name) {
       body.slug = body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     }
@@ -356,7 +400,7 @@ router.delete('/categories/:id', async (req, res) => {
 // ── COUPON MANAGEMENT ─────────────────────────────────────
 router.get('/coupons', async (req, res) => {
   try {
-    const coupons = await Coupon.find({ deletedAt: null }).sort({ createdAt: -1 });
+    const coupons = await Coupon.find(notDeleted).sort({ createdAt: -1 });
     res.json(coupons);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -365,7 +409,6 @@ router.get('/coupons', async (req, res) => {
 
 router.post('/coupons', async (req, res) => {
   try {
-    // Normalise frontend field names → schema field names
     const { discountType, discountValue, maxUses, ...rest } = req.body;
     const payload = {
       ...rest,
@@ -420,7 +463,6 @@ router.get('/notifications', async (req, res) => {
 router.post('/notifications', async (req, res) => {
   try {
     const notif = await Notification.create({ ...req.body, createdBy: req.user._id });
-    // Broadcast via socket.io
     const io = req.app.get('io');
     if (notif.target === 'all') io.emit('admin:notification', notif);
     await audit(req, 'SEND_NOTIFICATION', `Notification:${notif._id}`, { title: notif.title });
@@ -433,7 +475,7 @@ router.post('/notifications', async (req, res) => {
 // ── REVIEWS ───────────────────────────────────────────────
 router.get('/reviews', async (req, res) => {
   try {
-    const events = await Event.find({ 'reviews.0': { $exists: true }, deletedAt: null })
+    const events = await Event.find({ 'reviews.0': { $exists: true }, ...notDeleted })
       .select('title reviews')
       .populate('reviews.user', 'name avatar');
     const reviews = [];
@@ -449,7 +491,7 @@ router.get('/reviews', async (req, res) => {
 
 router.put('/reviews/:eventId/:reviewId', async (req, res) => {
   try {
-    const { action } = req.body; // 'hide' | 'show' | 'pin' | 'delete'
+    const { action } = req.body;
     const event = await Event.findById(req.params.eventId);
     if (!event) return res.status(404).json({ message: 'Event not found' });
     const review = event.reviews.id(req.params.reviewId);
@@ -491,16 +533,16 @@ router.get('/revenue', async (req, res) => {
     const startOfYear = new Date(now.getFullYear(), 0, 1);
 
     const [total, today, monthly, yearly, topEvents] = await Promise.all([
-      Booking.aggregate([{ $match: { paymentStatus: 'paid', deletedAt: null } }, { $group: { _id: null, v: { $sum: '$price' } } }]),
-      Booking.aggregate([{ $match: { paymentStatus: 'paid', createdAt: { $gte: startOfToday }, deletedAt: null } }, { $group: { _id: null, v: { $sum: '$price' } } }]),
-      Booking.aggregate([{ $match: { paymentStatus: 'paid', createdAt: { $gte: startOfMonth }, deletedAt: null } }, { $group: { _id: null, v: { $sum: '$price' } } }]),
-      Booking.aggregate([{ $match: { paymentStatus: 'paid', createdAt: { $gte: startOfYear }, deletedAt: null } }, { $group: { _id: null, v: { $sum: '$price' } } }]),
+      Booking.aggregate([{ $match: { paymentStatus: { $in: ['paid', 'free'] }, ...notDeleted } }, { $group: { _id: null, v: { $sum: '$price' } } }]),
+      Booking.aggregate([{ $match: { paymentStatus: { $in: ['paid', 'free'] }, createdAt: { $gte: startOfToday }, ...notDeleted } }, { $group: { _id: null, v: { $sum: '$price' } } }]),
+      Booking.aggregate([{ $match: { paymentStatus: { $in: ['paid', 'free'] }, createdAt: { $gte: startOfMonth }, ...notDeleted } }, { $group: { _id: null, v: { $sum: '$price' } } }]),
+      Booking.aggregate([{ $match: { paymentStatus: { $in: ['paid', 'free'] }, createdAt: { $gte: startOfYear }, ...notDeleted } }, { $group: { _id: null, v: { $sum: '$price' } } }]),
       Booking.aggregate([
-        { $match: { paymentStatus: 'paid', deletedAt: null } },
+        { $match: { paymentStatus: { $in: ['paid', 'free'] }, ...notDeleted } },
         { $group: { _id: '$event', revenue: { $sum: '$price' }, tickets: { $sum: 1 } } },
         { $sort: { revenue: -1 } }, { $limit: 10 },
         { $lookup: { from: 'events', localField: '_id', foreignField: '_id', as: 'event' } },
-        { $unwind: '$event' },
+        { $unwind: { path: '$event', preserveNullAndEmptyArrays: true } },
         { $project: { 'event.title': 1, 'event.banner': 1, revenue: 1, tickets: 1 } },
       ]),
     ]);
@@ -510,9 +552,10 @@ router.get('/revenue', async (req, res) => {
       today: today[0]?.v || 0,
       monthly: monthly[0]?.v || 0,
       yearly: yearly[0]?.v || 0,
-      topEvents,
+      topEvents: topEvents || [],
     });
   } catch (err) {
+    console.error('[Admin Revenue Error]:', err.message);
     res.status(500).json({ message: err.message });
   }
 });

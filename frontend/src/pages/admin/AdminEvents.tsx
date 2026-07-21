@@ -27,9 +27,14 @@ export default function AdminEvents() {
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
       const { data } = await API.get('/admin/events', { params });
-      setEvents(data.events);
-      setTotal(data.total);
-    } catch { toast.error('Failed to load events'); }
+      setEvents(data.events || []);
+      setTotal(data.total || 0);
+    } catch {
+      // Only show toast if we haven't already loaded data
+      if (events.length === 0) {
+        toast.error('Failed to load events');
+      }
+    }
     finally { setLoading(false); }
   };
 
@@ -125,7 +130,7 @@ export default function AdminEvents() {
                   <td style={{ padding: '12px 16px', fontSize: 12, color: '#a0a0b8' }}>
                     {ev.dateTime?.startDate ? new Date(ev.dateTime.startDate).toLocaleDateString() : 'N/A'}
                   </td>
-                  <td style={{ padding: '12px 16px', fontSize: 12, color: '#a0a0b8' }}>{ev.attendees?.length || 0} / {ev.capacity}</td>
+                  <td style={{ padding: '12px 16px', fontSize: 12, color: '#a0a0b8' }}>{ev.ticketsSold || 0} / {ev.capacity}</td>
                   <td style={{ padding: '12px 16px' }}>
                     <select value={ev.status} onChange={(e) => handleStatusChange(ev._id, e.target.value)}
                       style={{ fontSize: 11, padding: '3px 8px', borderRadius: 20, background: `${STATUS_COLORS[ev.status] || '#a0a0b8'}20`, border: `1px solid ${STATUS_COLORS[ev.status] || '#a0a0b8'}40`, color: STATUS_COLORS[ev.status] || '#a0a0b8', cursor: 'pointer' }}>

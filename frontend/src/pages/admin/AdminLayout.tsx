@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -28,8 +28,25 @@ const NAV = [
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { logout, user } = useStore();
+  const { logout, user, isAuthenticated, checkAuth } = useStore();
   const navigate = useNavigate();
+
+  // Check if user is authenticated for admin
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/admin/login', { replace: true });
+      return;
+    }
+    checkAuth();
+  }, []);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated && !localStorage.getItem('token')) {
+      navigate('/admin/login', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogout = () => {
     logout();
