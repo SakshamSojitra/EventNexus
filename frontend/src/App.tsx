@@ -16,6 +16,7 @@ import Sponsors from './components/Sponsors';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import UserNotificationsPage from './pages/UserNotificationsPage';
 import OrganizerDashboard from './pages/OrganizerDashboard';
 import EventDetails from './pages/EventDetails';
 import CreateEvent from './pages/CreateEvent';
@@ -38,8 +39,9 @@ import AdminReports from './pages/admin/AdminReports';
 import AdminSettings from './pages/admin/AdminSettings';
 
 import { useStore } from './store/useStore';
+import { NotificationProvider } from './context/NotificationContext';
 
-export default function App() {
+function AppContent() {
   const { checkAuth } = useStore();
 
   useEffect(() => { checkAuth(); }, []);
@@ -99,6 +101,7 @@ export default function App() {
           <Route path="/login"       element={<Login />} />
           <Route path="/register"    element={<Register />} />
           <Route path="/dashboard"   element={<Dashboard />} />
+          <Route path="/dashboard/notifications" element={<UserNotificationsPage />} />
           <Route path="/organizer"   element={<OrganizerDashboard />} />
           <Route path="/event/:id"   element={<EventDetails />} />
           <Route path="/create-event" element={<CreateEvent />} />
@@ -106,5 +109,13 @@ export default function App() {
         </Route>
       </Routes>
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <NotificationProvider>
+      <AppContent />
+    </NotificationProvider>
   );
 }

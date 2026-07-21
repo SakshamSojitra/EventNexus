@@ -8,6 +8,13 @@ const Coupon = require('../models/Coupon');
 const Notification = require('../models/Notification');
 const AuditLog = require('../models/AuditLog');
 const { protect, authorize } = require('../middleware/auth');
+const {
+  sendNotification,
+  getNotificationHistory,
+  getNotificationStatistics,
+  getNotificationRecipients,
+  resendNotificationEmails,
+} = require('../controllers/notificationController');
 
 // All admin routes require admin role
 router.use(protect, authorize('admin'));
@@ -450,23 +457,30 @@ router.delete('/coupons/:id', async (req, res) => {
   }
 });
 
+// ════════════════════════════════════════════════════════════
 // ── NOTIFICATIONS ─────────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+
+// POST /api/admin/notifications/send - Send notification to targeted users
+router.post('/notifications/send', sendNotification);
+
+// GET /api/admin/notifications/history - Get notification history with search, filter, pagination
+router.get('/notifications/history', getNotificationHistory);
+
+// GET /api/admin/notifications/statistics - Get notification statistics for dashboard
+router.get('/notifications/statistics', getNotificationStatistics);
+
+// GET /api/admin/notifications/recipients/:id - Get recipients for a notification
+router.get('/notifications/recipients/:id', getNotificationRecipients);
+
+// POST /api/admin/notifications/:id/resend - Resend failed emails
+router.post('/notifications/:id/resend', resendNotificationEmails);
+
+// Legacy: GET /api/admin/notifications - Simple list
 router.get('/notifications', async (req, res) => {
   try {
-    const notifications = await Notification.find().sort({ createdAt: -1 }).limit(50);
+    const notifications = await Notification.find().sort({ createdAt: -1 }).limit(50).lean();
     res.json(notifications);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-router.post('/notifications', async (req, res) => {
-  try {
-    const notif = await Notification.create({ ...req.body, createdBy: req.user._id });
-    const io = req.app.get('io');
-    if (notif.target === 'all') io.emit('admin:notification', notif);
-    await audit(req, 'SEND_NOTIFICATION', `Notification:${notif._id}`, { title: notif.title });
-    res.status(201).json(notif);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

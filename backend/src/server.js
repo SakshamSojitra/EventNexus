@@ -56,31 +56,75 @@ app.use('/api/tickets', require('./routes/tickets'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api', require('./routes/bookings'));
+app.use('/api/user/notifications', require('./routes/userNotifications'));
 
 app.get('/api/health', (_req, res) => res.json({ status: 'healthy', timestamp: new Date().toISOString() }));
 
 // Socket.io
 const onlineUsers = new Map();
+const Notification = require('./models/Notification');
+
 io.on('connection', (socket) => {
-  socket.on('user:online', (userId) => {
+  console.log(`🔌 New socket connection: ${socket.id}`);
+
+  socket.on('user:online', async (userId) => {
     onlineUsers.set(userId, socket.id);
+    socket.join(`user:${userId}`);
     io.emit('users:online-count', onlineUsers.size);
+
+    // Send unread count to the user on connect
+    try {
+      const unreadCount = await Notification.countDocuments({
+        recipients: userId,
+        'userNotifications': {
+          $elemMatch: { user: userId, isRead: false },
+        },
+      });
+      socket.emit('notification:unread-count', { count: unreadCount });
+    } catch (err) {
+      console.error('[Socket] Error fetching unread count:', err.message);
+    }
   });
+
   socket.on('event:join', (eventId) => {
     socket.join(`event:${eventId}`);
     const count = io.sockets.adapter.rooms.get(`event:${eventId}`)?.size || 0;
     io.to(`event:${eventId}`).emit('event:attendee-count', count);
   });
+
   socket.on('event:leave', (eventId) => {
     socket.leave(`event:${eventId}`);
     const count = io.sockets.adapter.rooms.get(`event:${eventId}`)?.size || 0;
     io.to(`event:${eventId}`).emit('event:attendee-count', count);
   });
+
+  socket.on('notification:mark-read', async ({ notificationId, userId }) => {
+    try {
+      const notificationService = require('./services/notificationService');
+      await notificationService.markAsRead(notificationId, userId);
+      
+      // Get updated unread count
+      const unreadCount = await Notification.countDocuments({
+        recipients: userId,
+        'userNotifications': {
+          $elemMatch: { user: userId, isRead: false },
+        },
+      });
+      socket.emit('notification:unread-count', { count: unreadCount });
+    } catch (err) {
+      console.error('[Socket] Error marking notification read:', err.message);
+    }
+  });
+
   socket.on('disconnect', () => {
     for (const [uid, sid] of onlineUsers.entries()) {
-      if (sid === socket.id) { onlineUsers.delete(uid); break; }
+      if (sid === socket.id) {
+        onlineUsers.delete(uid);
+        break;
+      }
     }
     io.emit('users:online-count', onlineUsers.size);
+    console.log(`🔌 Socket disconnected: ${socket.id}`);
   });
 });
 

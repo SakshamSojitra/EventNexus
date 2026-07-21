@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FiSearch, FiBell, FiMessageSquare, FiChevronDown,
+  FiSearch, FiMessageSquare, FiChevronDown,
   FiLogOut, FiUser, FiSettings, FiShield,
 } from 'react-icons/fi';
 import { useStore } from '../store/useStore';
 import toast from 'react-hot-toast';
+import NotificationBell from './NotificationBell';
 
 const PAGE_TITLES: Record<string, { title: string; crumb: string }> = {
   '/admin/dashboard':     { title: 'Dashboard',     crumb: 'Overview' },
@@ -84,32 +85,19 @@ export default function AdminHeader({ sidebarW }: { sidebarW: number }) {
       </div>
 
       {/* Icon buttons */}
-      {[
-        { icon: FiMessageSquare, badge: 3 },
-        { icon: FiBell, badge: 7 },
-      ].map(({ icon: Icon, badge }, i) => (
-        <button
-          key={i}
-          style={{
-            position: 'relative', width: 36, height: 36, borderRadius: 10,
-            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#a0a0b8', cursor: 'pointer', flexShrink: 0,
-          }}
-        >
-          <Icon size={16} />
-          {badge > 0 && (
-            <span style={{
-              position: 'absolute', top: -4, right: -4,
-              minWidth: 16, height: 16, borderRadius: 8,
-              background: '#EF4444', color: '#fff',
-              fontSize: 9, fontWeight: 700,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '0 4px',
-            }}>{badge}</span>
-          )}
-        </button>
-      ))}
+      <button
+        style={{
+          position: 'relative', width: 36, height: 36, borderRadius: 10,
+          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#a0a0b8', cursor: 'pointer', flexShrink: 0,
+        }}
+      >
+        <FiMessageSquare size={16} />
+      </button>
+
+      {/* Real Notification Bell */}
+      <NotificationBell userType="admin" />
 
       {/* Profile dropdown */}
       <div style={{ position: 'relative', flexShrink: 0 }}>
