@@ -101,6 +101,8 @@ export default function BookingModal({ phase, loadingText, progress, ticketType,
   );
 }
 
+const TICKET_DISPLAY_PRICES: Record<string, string> = { free: 'FREE', premium: '₹299', vip: '₹599' };
+
 function LoadingContent({ phase, loadingText, progress, ticketType }: { phase: BookingPhase; loadingText: string; progress: number; ticketType: string }) {
   return (
     <>
@@ -173,7 +175,7 @@ function LoadingContent({ phase, loadingText, progress, ticketType }: { phase: B
 
       {phase === 'payment' && (
         <div style={{ marginTop: 20, padding: '12px 16px', background: 'rgba(79,70,229,0.08)', borderRadius: 12, border: '1px solid rgba(79,70,229,0.15)' }}>
-          <div style={{ fontSize: 12, color: '#818cf8' }}>🔒 Secure Demo Payment • {ticketType === 'premium' ? '$299' : '$599'}</div>
+          <div style={{ fontSize: 12, color: '#818cf8' }}>🔒 Secure Demo Payment • {TICKET_DISPLAY_PRICES[ticketType] || 'FREE'}</div>
         </div>
       )}
     </>

@@ -18,7 +18,7 @@ const AdminDashboard = () => {
           {[
             { icon: FiUsers, label: 'Total Users', value: '24,580', change: '+12%', color: '#4F46E5' },
             { icon: FiCalendar, label: 'Total Events', value: '1,847', change: '+8%', color: '#7C3AED' },
-            { icon: FiDollarSign, label: 'Revenue', value: '$284,920', change: '+23%', color: '#10B981' },
+            { icon: FiDollarSign, label: 'Revenue', value: '₹284,920', change: '+23%', color: '#10B981' },
             { icon: FiShield, label: 'Active Admins', value: '8', change: 'Stable', color: '#06B6D4' },
           ].map((w, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}

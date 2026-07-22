@@ -16,7 +16,7 @@ const COLORS = ['#4F46E5','#7C3AED','#06B6D4','#10B981','#F59E0B','#EF4444'];
 function StatCard({ icon: Icon, label, value, sub, color, delay = 0 }: any) {
   const [count, setCount] = useState(0);
   const numeric = parseFloat(String(value).replace(/[^0-9.]/g, ''));
-  const prefix = String(value).startsWith('$') ? '$' : '';
+  const prefix = String(value).startsWith('₹') ? '₹' : '';
 
   useEffect(() => {
     let start = 0;
@@ -97,8 +97,8 @@ export default function AdminDashboardHome() {
             <StatCard icon={FiUsers}      label="Total Users"       value={stats.totalUsers || 0}                              sub="Attendees" color="#4F46E5" delay={0} />
             <StatCard icon={FiCalendar}   label="Total Events"      value={stats.totalEvents || 0}                             color="#7C3AED" delay={0.05} />
             <StatCard icon={FiBookOpen}   label="Total Bookings"    value={stats.totalBookings || 0}                           color="#06B6D4" delay={0.1} />
-            <StatCard icon={FiDollarSign} label="Total Revenue"     value={`$${(stats.totalRevenue || 0).toLocaleString()}`}   color="#10B981" delay={0.15} />
-            <StatCard icon={FiTrendingUp} label="Monthly Revenue"   value={`$${(stats.monthlyRevenue || 0).toLocaleString()}`} color="#F59E0B" delay={0.2} />
+            <StatCard icon={FiDollarSign} label="Total Revenue"     value={`₹${(stats.totalRevenue || 0).toLocaleString()}`}   color="#10B981" delay={0.15} />
+            <StatCard icon={FiTrendingUp} label="Monthly Revenue"   value={`₹${(stats.monthlyRevenue || 0).toLocaleString()}`} color="#F59E0B" delay={0.2} />
             <StatCard icon={FiActivity}   label="Tickets Sold"      value={stats.ticketsSold || 0}                             color="#EF4444" delay={0.25} />
             <StatCard icon={FiAward}      label="Upcoming Events"   value={stats.upcomingEvents || 0}                          color="#4F46E5" delay={0.3} />
             <StatCard icon={FiClock}      label="Today's Events"    value={stats.todayEvents || 0}                             color="#06B6D4" delay={0.35} />
@@ -121,7 +121,7 @@ export default function AdminDashboardHome() {
                   <XAxis dataKey="name" tick={{ fill: '#a0a0b8', fontSize: 12 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: '#a0a0b8', fontSize: 12 }} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={{ background: 'rgba(10,10,30,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }} />
-                  <Area type="monotone" dataKey="revenue" stroke="#4F46E5" strokeWidth={2} fill="url(#rev)" name="Revenue ($)" />
+                  <Area type="monotone" dataKey="revenue" stroke="#4F46E5" strokeWidth={2} fill="url(#rev)" name="Revenue (₹)" />
                   <Area type="monotone" dataKey="bookings" stroke="#06B6D4" strokeWidth={2} fill="none" name="Bookings" />
                 </AreaChart>
               </ResponsiveContainer>
@@ -215,7 +215,7 @@ export default function AdminDashboardHome() {
                     <div style={{ width: 24, height: 24, borderRadius: 6, background: `${COLORS[i]}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: COLORS[i] }}>{i + 1}</div>
                     <div style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>{e.event?.title || 'N/A'}</div>
                   </div>
-                  <div style={{ fontSize: 12, color: '#10B981', fontWeight: 600 }}>${(e.revenue || 0).toLocaleString()}</div>
+                  <div style={{ fontSize: 12, color: '#10B981', fontWeight: 600 }}>₹{(e.revenue || 0).toLocaleString()}</div>
                 </div>
               ))}
             </motion.div>

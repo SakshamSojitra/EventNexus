@@ -460,7 +460,7 @@ const CreateEvent = () => {
                     </div>
                   </FormField>
                   {formData.ticketType !== 'free' && (
-                    <FormField label="Ticket Price ($)" error={errors.ticketPrice}>
+                    <FormField label="Ticket Price (₹)" error={errors.ticketPrice}>
                       <input type="number" min="0" step="0.01" value={formData.ticketPrice} onChange={(e) => updateField('ticketPrice', e.target.value)}
                         placeholder="29.99" className="input" style={{ borderColor: errors.ticketPrice ? '#ef4444' : undefined }} />
                     </FormField>

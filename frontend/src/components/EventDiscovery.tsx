@@ -15,14 +15,14 @@ const CATEGORY_IMAGES: Record<string, string> = {
 };
 
 const MOCK_EVENTS = [
-  { _id: '1', title: 'AI Summit 2027',          category: 'ai',         location: 'San Francisco, CA', price: 299, popularity: 95, attendees: 1500,  banner: '', dateTime: { startDate: '2027-03-15' } },
-  { _id: '2', title: 'Tech Conference Global',   category: 'technology', location: 'London, UK',        price: 599, popularity: 92, attendees: 3000,  banner: '', dateTime: { startDate: '2027-04-20' } },
-  { _id: '3', title: 'Startup Pitch Night',      category: 'startups',   location: 'New York, NY',      price: 49,  popularity: 88, attendees: 500,   banner: '', dateTime: { startDate: '2027-02-10' } },
-  { _id: '4', title: 'Gaming Expo 2027',         category: 'gaming',     location: 'Tokyo, Japan',      price: 199, popularity: 85, attendees: 5000,  banner: '', dateTime: { startDate: '2027-06-05' } },
-  { _id: '5', title: 'Music Festival',           category: 'music',      location: 'Miami, FL',         price: 149, popularity: 82, attendees: 10000, banner: '', dateTime: { startDate: '2027-05-22' } },
-  { _id: '6', title: 'Sports Innovation Forum',  category: 'sports',     location: 'Dubai, UAE',        price: 449, popularity: 78, attendees: 2000,  banner: '', dateTime: { startDate: '2027-07-10' } },
-  { _id: '7', title: 'Business Leadership Summit',  category: 'business',     location: 'Singapore',        price: 349, popularity: 89, attendees: 2000,  banner: '', dateTime: { startDate: '2027-08-18' } },
-  { _id: '8', title: 'Design & Creativity Workshop',  category: 'design',     location: 'Paris, France',        price: 99, popularity: 83, attendees: 350,  banner: '', dateTime: { startDate: '2027-09-05' } },
+  { _id: '1', title: 'AI Summit 2026',          category: 'ai',         location: 'Bengaluru, Karnataka', price: 299, popularity: 95, attendees: 1500,  banner: '', dateTime: { startDate: '2027-03-15' } },
+  { _id: '2', title: 'Tech Conference Global',   category: 'technology', location: 'Hyderabad, Telangana',        price: 599, popularity: 92, attendees: 3000,  banner: '', dateTime: { startDate: '2027-04-20' } },
+  { _id: '3', title: 'Startup Pitch Night',      category: 'startups',   location: 'Pune, Maharashtra',      price: 49,  popularity: 88, attendees: 500,   banner: '', dateTime: { startDate: '2027-02-10' } },
+  { _id: '4', title: 'Gaming Expo 2027',         category: 'gaming',     location: 'Mumbai, Maharashtra',      price: 199, popularity: 85, attendees: 5000,  banner: '', dateTime: { startDate: '2027-06-05' } },
+  { _id: '5', title: 'Music Festival',           category: 'music',      location: 'Goa',         price: 149, popularity: 82, attendees: 10000, banner: '', dateTime: { startDate: '2027-05-22' } },
+  { _id: '6', title: 'Sports Innovation Forum',  category: 'sports',     location: 'Ahmedabad, Gujarat',        price: 449, popularity: 78, attendees: 2000,  banner: '', dateTime: { startDate: '2027-07-10' } },
+  { _id: '7', title: 'Business Leadership Summit',  category: 'business',     location: 'New Delhi, Delhi',        price: 349, popularity: 89, attendees: 2000,  banner: '', dateTime: { startDate: '2027-08-18' } },
+  { _id: '8', title: 'Design & Creativity Workshop',  category: 'design',     location: 'Jaipur, Rajasthan',        price: 99, popularity: 83, attendees: 350,  banner: '', dateTime: { startDate: '2027-09-05' } },
 ];
 
 const COLORS = ['#4F46E5', '#7C3AED', '#06B6D4', '#EC4899', '#10B981', '#F59E0B'];
@@ -88,19 +88,30 @@ const EventCard = ({ event, index }: { event: typeof MOCK_EVENTS[0]; index: numb
             {event.category}
           </div>
 
-          {/* Live badge */}
-          <div style={{
-            position: 'absolute', top: 12, right: 12,
-            display: 'flex', alignItems: 'center', gap: 4,
-            padding: '4px 10px',
-            background: 'rgba(239,68,68,0.2)',
-            backdropFilter: 'blur(10px)',
-            borderRadius: 100, fontSize: 11, color: '#ef4444',
-            border: '1px solid rgba(239,68,68,0.25)',
-          }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444' }} />
-            Live
-          </div>
+          {/* Live/Upcoming badge */}
+          {(() => {
+            const eventDate = new Date(event.dateTime.startDate).toDateString();
+            const today = new Date().toDateString();
+            const isLive = eventDate === today;
+            return (
+              <div style={{
+                position: 'absolute', top: 12, right: 12,
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '4px 10px',
+                background: isLive ? 'rgba(239,68,68,0.2)' : 'rgba(79,70,229,0.2)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: 100, fontSize: 11,
+                color: isLive ? '#ef4444' : '#818cf8',
+                border: isLive ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(79,70,229,0.25)',
+              }}>
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: isLive ? '#ef4444' : '#818cf8',
+                }} />
+                {isLive ? 'Live' : 'Upcoming'}
+              </div>
+            );
+          })()}
         </div>
 
         {/* ── Card body (unchanged) ── */}
@@ -125,7 +136,7 @@ const EventCard = ({ event, index }: { event: typeof MOCK_EVENTS[0]; index: numb
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
             <div>
               <span style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", color: '#fff' }}>
-                ${event.price}
+                ₹{event.price}
               </span>
               {event.price > 0 && <span style={{ fontSize: 12, color: '#a0a0b8', marginLeft: 4 }}>/ ticket</span>}
             </div>

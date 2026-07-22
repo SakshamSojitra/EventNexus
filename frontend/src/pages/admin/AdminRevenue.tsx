@@ -14,7 +14,7 @@ function StatCard({ icon: Icon, label, value, color }: any) {
       <div style={{ width: 40, height: 40, borderRadius: 10, background: `${color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
         <Icon size={20} style={{ color }} />
       </div>
-      <div style={{ fontSize: 28, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>${Number(value).toLocaleString()}</div>
+      <div style={{ fontSize: 28, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif" }}>₹{Number(value).toLocaleString()}</div>
       <div style={{ fontSize: 13, color: '#a0a0b8', marginTop: 4 }}>{label}</div>
     </motion.div>
   );
@@ -77,7 +77,7 @@ export default function AdminRevenue() {
               <XAxis dataKey="name" tick={{ fill: '#a0a0b8', fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: '#a0a0b8', fontSize: 12 }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={{ background: 'rgba(10,10,30,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }} />
-              <Area type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={2} fill="url(#gr)" name="Revenue ($)" />
+              <Area type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={2} fill="url(#gr)" name="Revenue (₹)" />
             </AreaChart>
           </ResponsiveContainer>
         </motion.div>
@@ -91,7 +91,7 @@ export default function AdminRevenue() {
               <XAxis dataKey="name" tick={{ fill: '#a0a0b8', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: '#a0a0b8', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={{ background: 'rgba(10,10,30,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }} />
-              <Bar dataKey="revenue" fill="#4F46E5" radius={[4,4,0,0]} name="Revenue ($)" />
+              <Bar dataKey="revenue" fill="#4F46E5" radius={[4,4,0,0]} name="Revenue (₹)" />
             </BarChart>
           </ResponsiveContainer>
         </motion.div>
@@ -121,7 +121,7 @@ export default function AdminRevenue() {
                   <td style={{ padding: '12px 16px', fontSize: 13, color: '#606080' }}>{i+1}</td>
                   <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 500 }}>{e.event?.title ?? '—'}</td>
                   <td style={{ padding: '12px 16px', fontSize: 13, color: '#a0a0b8' }}>{e.tickets ?? 0}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 14, fontWeight: 700, color: '#10B981' }}>${(e.revenue ?? 0).toLocaleString()}</td>
+                  <td style={{ padding: '12px 16px', fontSize: 14, fontWeight: 700, color: '#10B981' }}>₹{(e.revenue ?? 0).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>

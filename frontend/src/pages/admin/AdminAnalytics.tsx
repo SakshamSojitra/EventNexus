@@ -56,7 +56,7 @@ export default function AdminAnalytics() {
               <XAxis dataKey="name" tick={{ fill: '#a0a0b8', fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: '#a0a0b8', fontSize: 12 }} axisLine={false} tickLine={false} />
               <Tooltip {...TT} />
-              <Area type="monotone" dataKey="revenue"  stroke="#4F46E5" strokeWidth={2} fill="url(#a1)" name="Revenue ($)" />
+              <Area type="monotone" dataKey="revenue"  stroke="#4F46E5" strokeWidth={2} fill="url(#a1)" name="Revenue (₹)" />
               <Area type="monotone" dataKey="bookings" stroke="#06B6D4" strokeWidth={2} fill="none"       name="Bookings" />
             </AreaChart>
           </ResponsiveContainer>

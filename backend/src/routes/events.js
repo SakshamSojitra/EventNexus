@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Event = require('../models/Event');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -28,12 +29,16 @@ router.get('/', async (req, res) => {
 // GET single event (public)
 router.get('/:id', async (req, res) => {
   try {
+    // Validate ObjectId before query to prevent Mongoose CastError
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
     const event = await Event.findOne({ _id: req.params.id, deletedAt: null })
       .populate('organizer', 'name email avatar')
       .populate('attendees.user', 'name avatar');
     if (!event) return res.status(404).json({ message: 'Event not found' });
-    event.popularity += 1;
-    await event.save();
+    // increment popularity view count
+    await Event.findByIdAndUpdate(event._id, { $inc: { popularity: 1 } });
     res.json(event);
   } catch (err) {
     res.status(500).json({ message: err.message });

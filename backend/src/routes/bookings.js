@@ -1,12 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const QRCode = require('qrcode');
-const { randomUUID } = require('crypto'); // Node built-in, no package needed
+const { randomUUID } = require('crypto');
 const Booking = require('../models/Booking');
 const Event = require('../models/Event');
 const { protect } = require('../middleware/auth');
-
-const TICKET_PRICES = { free: 0, premium: 299, vip: 599 };
 
 /**
  * Computes ticket status dynamically from event dateTime fields.
@@ -18,7 +16,6 @@ function computeTicketStatus(event) {
   const { startDate, endDate, startTime, endTime } = event.dateTime;
   const now = new Date();
 
-  // Parse "HH:MM AM/PM" or "HH:MM" into hours + minutes
   function parseTime(timeStr) {
     if (!timeStr) return { h: 0, m: 0 };
     const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
@@ -31,7 +28,6 @@ function computeTicketStatus(event) {
     return { h, m };
   }
 
-  // Build a Date from a date field + time string
   function buildDateTime(dateField, timeStr) {
     const base = new Date(dateField);
     const { h, m } = parseTime(timeStr);
@@ -46,6 +42,16 @@ function computeTicketStatus(event) {
   return 'expired';
 }
 
+/** Look up a ticket price from an event's tickets array, or fallback to defaults */
+function resolveTicketPrice(event, ticketType) {
+  if (event && event.tickets && Array.isArray(event.tickets)) {
+    const matched = event.tickets.find(t => t.type === ticketType);
+    if (matched && matched.price !== undefined) return matched.price;
+  }
+  const DEFAULTS = { free: 0, premium: 299, vip: 599, general: 49, student: 99, early_bird: 149 };
+  return DEFAULTS[ticketType] || 0;
+}
+
 /** Attach computed ticketStatus to each booking object */
 function withStatus(bookings) {
   return bookings.map((b) => {
@@ -58,16 +64,16 @@ function withStatus(bookings) {
 // POST /api/book-ticket
 router.post('/book-ticket', protect, async (req, res) => {
   try {
-    const { eventId, ticketType, eventDate } = req.body;
+    const { eventId, ticketType } = req.body;
 
-    if (!['free', 'premium', 'vip'].includes(ticketType)) {
+    if (!ticketType || typeof ticketType !== 'string') {
       return res.status(400).json({ message: 'Invalid ticket type' });
     }
 
     const event = await Event.findById(eventId).catch(() => null);
     const eventRef = event ? eventId : null;
 
-    const price = TICKET_PRICES[ticketType];
+    const price = resolveTicketPrice(event, ticketType);
     const bookingId = randomUUID();
     const rand = Math.floor(10000 + Math.random() * 90000);
     const ticketNumber = `EVT-2026-${rand}`;
@@ -75,7 +81,7 @@ router.post('/book-ticket', protect, async (req, res) => {
     const qrData = JSON.stringify({ bookingId, ticketNumber, userName: req.user.name, ticketType, eventId });
     const qrCode = await QRCode.toDataURL(qrData);
 
-    const transactionId = ticketType !== 'free'
+    const transactionId = price > 0
       ? 'TXN-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase()
       : '';
 
@@ -85,12 +91,13 @@ router.post('/book-ticket', protect, async (req, res) => {
       event: eventRef,
       ticketType,
       price,
-      paymentStatus: ticketType === 'free' ? 'free' : 'paid',
-      paymentMethod: ticketType === 'free' ? '' : 'Demo Payment',
+      paymentStatus: price === 0 ? 'free' : 'paid',
+      paymentMethod: price === 0 ? '' : 'Demo Payment',
       transactionId,
       bookingStatus: 'confirmed',
       qrCode,
       ticketNumber,
+      eventDate: event?.dateTime?.startDate || null,
     });
 
     const populated = await Booking.findById(booking._id)
@@ -135,7 +142,7 @@ router.get('/ticket/:bookingId', protect, async (req, res) => {
   }
 });
 
-// GET /api/tickets/verify/:ticketId  — public QR scan endpoint (no auth required)
+// GET /api/tickets/verify/:ticketId — public QR scan endpoint
 router.get('/tickets/verify/:ticketId', async (req, res) => {
   try {
     const booking = await Booking.findOne({

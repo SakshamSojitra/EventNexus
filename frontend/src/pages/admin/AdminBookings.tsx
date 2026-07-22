@@ -120,7 +120,7 @@ export default function AdminBookings() {
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: 12, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.event?.title ?? '—'}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12, color: '#a0a0b8', textTransform: 'capitalize' }}>{b.ticketType ?? '—'}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: '#10B981' }}>{b.price === 0 ? 'FREE' : `$${b.price}`}</td>
+                  <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: '#10B981' }}>{b.price === 0 ? 'FREE' : `₹${b.price}`}</td>
                   <td style={{ padding: '12px 16px' }}>
                     <select value={b.bookingStatus} onChange={e => updateStatus(b._id, e.target.value)}
                       style={{ fontSize: 11, padding: '3px 8px', borderRadius: 20, background: cfg.bg, border: `1px solid ${cfg.color}40`, color: cfg.color, cursor: 'pointer' }}>

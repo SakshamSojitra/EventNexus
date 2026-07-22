@@ -14,7 +14,7 @@ const TYPE_CONFIG = {
 };
 
 function formatDate(dateStr?: string) {
-  if (!dateStr) return 'March 15, 2027';
+  if (!dateStr) return '—';
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
@@ -81,7 +81,7 @@ function TicketCard({ booking, index }: { booking: Booking; index: number }) {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
-      doc.text(booking.event?.title || 'AI Summit 2027', 14, 18);
+      doc.text(booking.event?.title || 'Event Ticket', 14, 18);
 
       const [r, g, b] = booking.ticketType === 'vip' ? [245, 158, 11] : booking.ticketType === 'premium' ? [79, 70, 229] : [16, 185, 129];
       doc.setFillColor(r, g, b);
@@ -100,9 +100,9 @@ function TicketCard({ booking, index }: { booking: Booking; index: number }) {
         ['Name', booking.user?.name || ''],
         ['Email', booking.user?.email || ''],
         ['Date', formatDate(booking.event?.dateTime?.startDate)],
-        ['Venue', `${booking.event?.venue?.name || ''}, ${booking.event?.venue?.city || ''}`],
+        ['Venue', [booking.event?.venue?.name, booking.event?.venue?.city, booking.event?.venue?.country].filter(Boolean).join(', ')],
         ['Status', 'CONFIRMED'],
-        ['Price', booking.price === 0 ? 'FREE' : `$${booking.price}`],
+        ['Price', booking.price === 0 ? 'FREE' : `₹${booking.price}`],
       ];
       details.forEach(([label, value], i) => {
         doc.setTextColor(120, 120, 150);
@@ -174,7 +174,7 @@ function TicketCard({ booking, index }: { booking: Booking; index: number }) {
           : `linear-gradient(180deg, ${cfg.color}, ${cfg.color}66)`,
       }} />
 
-      <div style={{ padding: '28px 28px 20px 36px' }}>
+      <div style={{ padding: '28px 28px 28px 36px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
 
           {/* Left: ticket info */}
@@ -224,13 +224,13 @@ function TicketCard({ booking, index }: { booking: Booking; index: number }) {
               fontFamily: "'Space Grotesk', sans-serif",
               marginBottom: 4, color: isExpired ? '#a0a0b8' : '#fff',
             }}>
-              {booking.event?.title || 'AI Summit 2027'}
+              {booking.event?.title || 'Event Ticket'}
             </h3>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 24px', marginBottom: 18 }}>
               {[
                 { icon: FiCalendar, text: formatDate(booking.event?.dateTime?.startDate) },
-                { icon: FiMapPin,   text: `${booking.event?.venue?.city || 'San Francisco'}, ${booking.event?.venue?.country || 'CA'}` },
+                { icon: FiMapPin,   text: [booking.event?.venue?.city, booking.event?.venue?.country].filter(Boolean).join(', ') || 'Venue TBD' },
               ].map(({ icon: Icon, text }, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#a0a0b8' }}>
                   <Icon size={13} color="#818cf8" /> {text}
@@ -250,7 +250,7 @@ function TicketCard({ booking, index }: { booking: Booking; index: number }) {
                 { label: 'Booking ID', value: booking.bookingId?.substring(0, 8).toUpperCase() + '...' },
                 { label: 'Name',       value: booking.user?.name || '—' },
                 { label: 'Email',      value: booking.user?.email || '—' },
-                { label: 'Price',      value: booking.price === 0 ? 'FREE' : `$${booking.price}` },
+                { label: 'Price',      value: booking.price === 0 ? 'FREE' : `₹${booking.price}` },
                 { label: 'Payment',    value: booking.paymentStatus === 'free' ? 'Free' : 'Paid ✓' },
               ].map(({ label, value }) => (
                 <div key={label}>

@@ -87,26 +87,28 @@ const EventCard = ({ event, index }: { event: MockEvent; index: number }) => {
           >
             {event.category}
           </div>
-          <div
-            style={{
-              position: 'absolute',
-              top: 12,
-              right: 12,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              padding: '4px 10px',
-              background: 'rgba(239,68,68,0.2)',
-              backdropFilter: 'blur(10px)',
-              borderRadius: 100,
-              fontSize: 11,
-              color: '#ef4444',
-              border: '1px solid rgba(239,68,68,0.25)',
-            }}
-          >
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444' }} />
-            Live
-          </div>
+          {(() => {
+            const eventDate = new Date(event.dateTime.startDate).toDateString();
+            const today = new Date().toDateString();
+            const isLive = eventDate === today;
+            return (
+              <div
+                style={{
+                  position: 'absolute', top: 12, right: 12,
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '4px 10px',
+                  background: isLive ? 'rgba(239,68,68,0.2)' : 'rgba(79,70,229,0.2)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: 100, fontSize: 11,
+                  color: isLive ? '#ef4444' : '#818cf8',
+                  border: isLive ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(79,70,229,0.25)',
+                }}
+              >
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: isLive ? '#ef4444' : '#818cf8' }} />
+                {isLive ? 'Live' : 'Upcoming'}
+              </div>
+            );
+          })()}
         </div>
 
         <div style={{ padding: 20 }}>
@@ -155,7 +157,7 @@ const EventCard = ({ event, index }: { event: MockEvent; index: number }) => {
                   fontFamily: "'Space Grotesk', sans-serif",
                 }}
               >
-                ${event.price}
+                ₹{event.price}
               </span>
               <span style={{ fontSize: 12, color: '#a0a0b8', marginLeft: 4 }}>/ ticket</span>
             </div>

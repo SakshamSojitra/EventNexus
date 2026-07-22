@@ -22,7 +22,7 @@ const OrganizerDashboard = () => {
           {[
             { icon: FiCalendar, label: 'Total Events', value: '12', color: '#4F46E5' },
             { icon: FiUsers, label: 'Total Attendees', value: '2,847', color: '#7C3AED' },
-            { icon: FiDollarSign, label: 'Revenue', value: '$48,290', color: '#10B981' },
+            { icon: FiDollarSign, label: 'Revenue', value: '₹48,290', color: '#10B981' },
             { icon: FiEye, label: 'Page Views', value: '14.2K', color: '#06B6D4' },
           ].map((w, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}

@@ -221,7 +221,7 @@ export default function AdminEventModal({ event, onClose, onSaved }: ModalProps)
                         <input value={ticket.name} onChange={(e) => setForm((p) => { const t = [...p.tickets]; t[i] = { ...t[i], name: e.target.value }; return { ...p, tickets: t }; })} style={inputStyle} placeholder="Ticket name" />
                       </div>
                       <div>
-                        <label style={labelStyle}>Price ($)</label>
+                        <label style={labelStyle}>Price (₹)</label>
                         <input type="number" value={ticket.price} onChange={(e) => setForm((p) => { const t = [...p.tickets]; t[i] = { ...t[i], price: Number(e.target.value) }; return { ...p, tickets: t }; })} style={inputStyle} min={0} />
                       </div>
                       <div>

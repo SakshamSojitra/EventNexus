@@ -137,7 +137,7 @@ export default function AdminCoupons() {
                     <label style={{ fontSize: 12, color: '#a0a0b8', marginBottom: 6, display: 'block' }}>Discount Type</label>
                     <select value={form.discountType} onChange={e => setForm(p => ({...p, discountType: e.target.value}))} style={inputS}>
                       <option value="percentage" style={{ background: '#0d0d1f' }}>Percentage (%)</option>
-                      <option value="fixed" style={{ background: '#0d0d1f' }}>Fixed ($)</option>
+                      <option value="fixed" style={{ background: '#0d0d1f' }}>Fixed (₹)</option>
                     </select>
                   </div>
                   <div>
