@@ -53,7 +53,7 @@ async function seed() {
       category: 'ai',
       tags: ['ai', 'machine-learning', 'deep-learning'],
       organizer: admin._id,
-      venue: { name: 'Moscone Center', address: '747 Howard St', city: 'San Francisco', country: 'USA' },
+      venue: { name: 'Namma Bengaluru Convention Centre', address: 'MG Road, Ashok Nagar', city: 'Bengaluru', country: 'India' },
       dateTime: { startDate: new Date('2027-03-15'), endDate: new Date('2027-03-17'), startTime: '09:00 AM', endTime: '06:00 PM' },
       capacity: 1500,
       status: 'published',
@@ -70,7 +70,7 @@ async function seed() {
       category: 'technology',
       tags: ['technology', 'innovation', 'future'],
       organizer: admin._id,
-      venue: { name: 'ExCeL London', address: 'Royal Victoria Dock', city: 'London', country: 'UK' },
+      venue: { name: 'Hyderabad International Convention Centre', address: 'HITEC City', city: 'Hyderabad', country: 'India' },
       dateTime: { startDate: new Date('2027-04-20'), endDate: new Date('2027-04-22'), startTime: '09:00 AM', endTime: '06:00 PM' },
       capacity: 3000,
       status: 'published',
@@ -87,7 +87,7 @@ async function seed() {
       category: 'startups',
       tags: ['startups', 'pitch', 'investing'],
       organizer: admin._id,
-      venue: { name: 'WeWork Times Square', address: '1460 Broadway', city: 'New York', country: 'USA' },
+      venue: { name: 'Pune Startup Hub', address: 'Koregaon Park', city: 'Pune', country: 'India' },
       dateTime: { startDate: new Date('2027-02-10'), endDate: new Date('2027-02-10'), startTime: '06:00 PM', endTime: '10:00 PM' },
       capacity: 500,
       status: 'published',
@@ -104,7 +104,7 @@ async function seed() {
       category: 'gaming',
       tags: ['gaming', 'esports', 'entertainment'],
       organizer: admin._id,
-      venue: { name: 'Tokyo Big Sight', address: '3-11-1 Ariake', city: 'Tokyo', country: 'Japan' },
+      venue: { name: 'Mumbai Exhibition Centre', address: 'Goregaon East', city: 'Mumbai', country: 'India' },
       dateTime: { startDate: new Date('2027-06-05'), endDate: new Date('2027-06-08'), startTime: '10:00 AM', endTime: '08:00 PM' },
       capacity: 5000,
       status: 'published',
@@ -121,7 +121,7 @@ async function seed() {
       category: 'music',
       tags: ['music', 'festival', 'live'],
       organizer: admin._id,
-      venue: { name: 'Bayfront Park', address: '301 Biscayne Blvd', city: 'Miami', country: 'USA' },
+      venue: { name: 'Goa Beach Arena', address: 'Calangute Beach', city: 'Goa', country: 'India' },
       dateTime: { startDate: new Date('2027-05-22'), endDate: new Date('2027-05-25'), startTime: '12:00 PM', endTime: '11:00 PM' },
       capacity: 10000,
       status: 'published',
@@ -138,7 +138,7 @@ async function seed() {
       category: 'sports',
       tags: ['sports', 'innovation', 'technology'],
       organizer: admin._id,
-      venue: { name: 'Dubai World Trade Centre', address: 'Sheikh Zayed Rd', city: 'Dubai', country: 'UAE' },
+      venue: { name: 'Narendra Modi Stadium', address: 'Motera', city: 'Ahmedabad', country: 'India' },
       dateTime: { startDate: new Date('2027-07-10'), endDate: new Date('2027-07-12'), startTime: '09:00 AM', endTime: '06:00 PM' },
       capacity: 2000,
       status: 'published',
@@ -155,7 +155,7 @@ async function seed() {
       category: 'business',
       tags: ['business', 'leadership', 'networking'],
       organizer: admin._id,
-      venue: { name: 'Marina Bay Sands', address: '10 Bayfront Ave', city: 'Singapore', country: 'Singapore' },
+      venue: { name: 'Delhi Convention Centre', address: 'Connaught Place', city: 'New Delhi', country: 'India' },
       dateTime: { startDate: new Date('2027-08-18'), endDate: new Date('2027-08-20'), startTime: '09:00 AM', endTime: '06:00 PM' },
       capacity: 1200,
       status: 'published',
@@ -172,7 +172,7 @@ async function seed() {
       category: 'design',
       tags: ['design', 'creativity', 'workshop'],
       organizer: admin._id,
-      venue: { name: 'Palais des Congrès', address: '2 Place de la Porte Maillot', city: 'Paris', country: 'France' },
+      venue: { name: 'Jaipur Design Studio', address: 'MI Road', city: 'Jaipur', country: 'India' },
       dateTime: { startDate: new Date('2027-09-05'), endDate: new Date('2027-09-07'), startTime: '09:00 AM', endTime: '05:00 PM' },
       capacity: 350,
       status: 'published',
@@ -193,8 +193,17 @@ async function seed() {
       createdEvents.push(event);
       console.log(`   Created event: ${event.title}`);
     } else {
+      // UPDATE existing event with correct Indian venue data
+      existing.venue = eventData.venue;
+      existing.category = eventData.category;
+      existing.description = eventData.description;
+      existing.tags = eventData.tags;
+      existing.capacity = eventData.capacity;
+      existing.popularity = eventData.popularity;
+      existing.tickets = eventData.tickets;
+      await existing.save();
       createdEvents.push(existing);
-      console.log(`   Already exists: ${existing.title}`);
+      console.log(`   Updated venue for: ${existing.title}`);
     }
   }
 

@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { FiTrendingUp, FiMapPin, FiUsers } from 'react-icons/fi';
+import { MOCK_EVENTS } from '../data/mockEvents';
 
 const CATEGORY_IMAGES: Record<string, string> = {
   ai: 'https://media.istockphoto.com/id/2222990006/photo/artificial-intelligence-machine-learning-large-language-model-ai-technology.webp?a=1&b=1&s=612x612&w=0&k=20&c=T28GEzXtmmie0RbPJAn6MDncUJpQzqaqoSimSjLBBv0=',
@@ -13,17 +14,6 @@ const CATEGORY_IMAGES: Record<string, string> = {
   business: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fGJ1c2luZXNzJTIwbWVldGluZ3xlbnwwfHwwfHx8MA%3D%3D',
   design: 'https://images.unsplash.com/photo-1542626991-cbc4e32524cc?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8ZGVzaWduJTIwd29ya3Nob3B8ZW58MHx8MHx8fDA%3D',
 };
-
-const MOCK_EVENTS = [
-  { _id: '1', title: 'AI Summit 2026',          category: 'ai',         location: 'Bengaluru, Karnataka', price: 299, popularity: 95, attendees: 1500,  banner: '', dateTime: { startDate: '2027-03-15' } },
-  { _id: '2', title: 'Tech Conference Global',   category: 'technology', location: 'Hyderabad, Telangana',        price: 599, popularity: 92, attendees: 3000,  banner: '', dateTime: { startDate: '2027-04-20' } },
-  { _id: '3', title: 'Startup Pitch Night',      category: 'startups',   location: 'Pune, Maharashtra',      price: 49,  popularity: 88, attendees: 500,   banner: '', dateTime: { startDate: '2027-02-10' } },
-  { _id: '4', title: 'Gaming Expo 2027',         category: 'gaming',     location: 'Mumbai, Maharashtra',      price: 199, popularity: 85, attendees: 5000,  banner: '', dateTime: { startDate: '2027-06-05' } },
-  { _id: '5', title: 'Music Festival',           category: 'music',      location: 'Goa',         price: 149, popularity: 82, attendees: 10000, banner: '', dateTime: { startDate: '2027-05-22' } },
-  { _id: '6', title: 'Sports Innovation Forum',  category: 'sports',     location: 'Ahmedabad, Gujarat',        price: 449, popularity: 78, attendees: 2000,  banner: '', dateTime: { startDate: '2027-07-10' } },
-  { _id: '7', title: 'Business Leadership Summit',  category: 'business',     location: 'New Delhi, Delhi',        price: 349, popularity: 89, attendees: 2000,  banner: '', dateTime: { startDate: '2027-08-18' } },
-  { _id: '8', title: 'Design & Creativity Workshop',  category: 'design',     location: 'Jaipur, Rajasthan',        price: 99, popularity: 83, attendees: 350,  banner: '', dateTime: { startDate: '2027-09-05' } },
-];
 
 const COLORS = ['#4F46E5', '#7C3AED', '#06B6D4', '#EC4899', '#10B981', '#F59E0B'];
 

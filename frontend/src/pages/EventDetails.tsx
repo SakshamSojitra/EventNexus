@@ -123,14 +123,16 @@ const EventDetails = () => {
       const mockEvent = MOCK_EVENTS.find((m) => m._id === id);
       if (mockEvent) {
         // Build a partial event object with location matching the Event Card format
+        // The mockEvent.location already contains the display string (e.g., "Bengaluru, Karnataka")
+        const locationStr = mockEvent.location;
         setEvent({
           _id: id,
           title: mockEvent.title,
           category: mockEvent.category,
-          description: `Join us for ${mockEvent.title} in ${mockEvent.location}. Experience an unforgettable event featuring industry leaders, cutting-edge insights, and unparalleled networking opportunities.`,
+          description: `Join us for ${mockEvent.title} in ${locationStr}. Experience an unforgettable event featuring industry leaders, cutting-edge insights, and unparalleled networking opportunities.`,
           venue: {
-            name: mockEvent.location,
-            city: mockEvent.location,
+            name: locationStr,
+            city: locationStr,
             country: '',
             address: '',
           },
@@ -152,20 +154,33 @@ const EventDetails = () => {
 
     API.get(`/events/${id}`)
       .then(({ data }) => {
-        setEvent(data.event ?? data);
+        const eventData = data.event ?? data;
+        // Ensure location consistency: override venue with mock data if title matches
+        if (eventData?.title) {
+          const mockMatch = MOCK_EVENTS.find(m => m.title === eventData.title);
+          if (mockMatch && eventData.venue) {
+            const locationParts = mockMatch.location.split(', ');
+            eventData.venue.city = locationParts[0] || eventData.venue.city;
+            if (locationParts[1]) {
+              eventData.venue.country = 'India';
+            }
+          }
+        }
+        setEvent(eventData);
       })
       .catch(() => {
         // If API fails, try to find a matching mock event as fallback
         const mockEvent = MOCK_EVENTS.find((m) => m._id === id);
         if (mockEvent) {
+          const locationStr = mockEvent.location;
           setEvent({
             _id: id,
             title: mockEvent.title,
             category: mockEvent.category,
-            description: `Join us for ${mockEvent.title} in ${mockEvent.location}. Experience an unforgettable event featuring industry leaders, cutting-edge insights, and unparalleled networking opportunities.`,
+            description: `Join us for ${mockEvent.title} in ${locationStr}. Experience an unforgettable event featuring industry leaders, cutting-edge insights, and unparalleled networking opportunities.`,
             venue: {
-              name: mockEvent.location,
-              city: mockEvent.location,
+              name: locationStr,
+              city: locationStr,
               country: '',
               address: '',
             },

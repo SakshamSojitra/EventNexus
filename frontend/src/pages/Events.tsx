@@ -190,11 +190,20 @@ const Events = () => {
         const mapped = (data.events ?? []).map((e: Record<string, unknown>) => {
           const venue = e.venue as { name?: string; city?: string; country?: string } | undefined;
           const locationParts = [venue?.city, venue?.country].filter(Boolean);
+          // Derive location from API data
+          let location = locationParts.length > 0 ? locationParts.join(', ') : (venue?.name ?? 'TBD');
+          
+          // Override with mock event location if the titles match (ensures Indian locations even if DB has old data)
+          const mockMatch = MOCK_EVENTS.find(m => m.title === (e.title as string));
+          if (mockMatch) {
+            location = mockMatch.location;
+          }
+          
           return {
             _id: e._id as string,
             title: e.title as string,
             category: e.category as string,
-            location: locationParts.length > 0 ? locationParts.join(', ') : (venue?.name ?? 'TBD'),
+            location,
             price: (e.tickets as { price?: number }[])?.[0]?.price ?? 0,
             popularity: (e.popularity as number) ?? 0,
             attendees: (e.attendees as unknown[])?.length ?? 0,

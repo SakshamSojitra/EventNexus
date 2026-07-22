@@ -174,7 +174,7 @@ const CreateEvent = () => {
         ...prev,
         description: prev.description || aiDescription,
         tags: prev.tags || aiTags,
-        venueName: prev.venueName || 'San Francisco Convention Center',
+        venueName: prev.venueName || 'Your Venue Name',
         organizerName: prev.organizerName || 'Event Organizer',
       }));
       toast.success('AI content generated!');
@@ -412,7 +412,7 @@ const CreateEvent = () => {
                   </FormField>
                   <FormField label="City" error={errors.venueCity}>
                     <input type="text" value={formData.venueCity} onChange={(e) => updateField('venueCity', e.target.value)}
-                      placeholder="e.g. San Francisco" className="input" style={{ borderColor: errors.venueCity ? '#ef4444' : undefined }} />
+                      placeholder="e.g. Mumbai, Bengaluru, Delhi" className="input" style={{ borderColor: errors.venueCity ? '#ef4444' : undefined }} />
                   </FormField>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <FormField label="Start Date" error={errors.startDate}>
